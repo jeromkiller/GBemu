@@ -32,6 +32,9 @@ void PrintBinary(char value);
 //prints an 8 bit value in hex
 void PrintHex(char value);
 
+//dumps the values in the CPU registers
+void DumpCPU();
+
 #endif // !Tools
 
 

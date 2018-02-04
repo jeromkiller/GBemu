@@ -9,7 +9,9 @@
 
 #include <stdio.h>
 #include <tchar.h>
+#include <stdlib.h>
 
-
+#include "Tools.h"
+#include "CPU.h"
 
 // TODO: reference additional headers your program requires here

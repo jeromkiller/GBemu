@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "Tools.h"
 
 //prints a single opcode
 void PrintOpcode(struct DB_Opcode Opcode) 
@@ -42,4 +41,24 @@ void PrintBinary(char value)
 void PrintHex(char value)
 {
 	printf("%02x\t", value);
+}
+
+//dumps the values in the CPU registers
+void DumpCPU() {
+	printf("A: ");
+	PrintHex(REG_A);
+	printf("F: ");
+	PrintHex(REG_F);
+	printf("\nB: ");
+	PrintHex(REG_B);
+	printf("C: ");
+	PrintHex(REG_C);
+	printf("\nD: ");
+	PrintHex(REG_D);
+	printf("E: ");
+	PrintHex(REG_E);
+	printf("\nH: ");
+	PrintHex(REG_H);
+	printf("L: ");
+	PrintHex(REG_L);
 }
