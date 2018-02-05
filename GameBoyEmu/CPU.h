@@ -28,11 +28,10 @@
 /*	|   7   |  6   |   5    |   4    |3|2|1|0|
 	|Zero(Z)|Sub(N)|HalfC(H)|Carry(C)|0|0|0|0|
 */
-//#define FLAG_Z ...
-//#define FLAG_N ...
-//#define FLAG_H ...
-//#define FLAG_C ...
-//TODO implement flags
+#define FLAG_Z (CPU_ptr->Zero)
+#define FLAG_N (CPU_ptr->Subtract)
+#define FLAG_H (CPU_ptr->HCarry)
+#define FLAG_C (CPU_ptr->Carry)
 
 //structs
 struct CPU_struct {
@@ -46,14 +45,14 @@ struct CPU_struct {
 				unsigned char F;
 
 				struct {
-					char bit0 : 1;
-					char bit1 : 1;
-					char bit2 : 1;
-					char bit3 : 1;
-					char bit4 : 1;
-					char bit5 : 1;
-					char bit6 : 1;
-					char bit7 : 1;
+					char null0 : 1;
+					char null1 : 1;
+					char null2 : 1;
+					char null3 : 1;
+					char Carry : 1;
+					char HCarry : 1;
+					char Subtract : 1;
+					char Zero : 1;
 				};
 			};
 			unsigned char A;

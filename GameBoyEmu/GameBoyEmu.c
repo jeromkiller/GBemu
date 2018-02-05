@@ -10,8 +10,8 @@ int main()
 	CPU_init();
 
 	REG_A = 255;
-	CPU_ptr->bit0 = 1;
-	CPU_ptr->bit7 = 1;
+	CPU_ptr->null0 = 1;
+	CPU_ptr->Zero = 1;
 	
 	DumpCPU();
 	
