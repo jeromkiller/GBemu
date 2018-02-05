@@ -30,7 +30,10 @@ void PrintAllOpcodes(struct DB_Opcode *Opcode, int count);
 void PrintBinary(char value);
 
 //prints an 8 bit value in hex
-void PrintHex(char value);
+void PrintHex8bit(char value);
+
+//prints an 16 bit value in hex
+void PrintHex16bit(short value);
 
 //dumps the values in the CPU registers
 void DumpCPU();

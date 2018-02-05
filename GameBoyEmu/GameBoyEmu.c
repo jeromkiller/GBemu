@@ -9,13 +9,12 @@ int main()
 {
 	CPU_init();
 
-	REG_A = 8;
-	REG_F = 3;
-	REG_B = 8;
+	REG_A = 255;
+	CPU_ptr->bit0 = 1;
+	CPU_ptr->bit7 = 1;
+	
 	DumpCPU();
-	//prinf("%d\n" REG_AF);
-
-
+	
     return 0;
 }
 
