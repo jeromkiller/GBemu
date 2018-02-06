@@ -1,8 +1,8 @@
 #pragma once
-#ifndef CPU
+#ifndef CPU_h
 #include <stdlib.h>
 
-#define CPU
+#define CPU_h
 
 
 //Defines
@@ -90,6 +90,12 @@ struct CPU_struct* CPU_ptr;
 
 //function prototypes
 //initiate CPU
-int CPU_init(void);
+void CPU_init(void);
+
+//free CPU
+void CPU_dispose(void);
+
+//fetch the next instruction
+char Read_PC(void);
 
 #endif // !CPU

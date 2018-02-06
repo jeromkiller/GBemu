@@ -1,6 +1,6 @@
 #pragma once
-#ifndef Tools
-#define Tools
+#ifndef Tools_h
+#define Tools_h
 //includes
 #include <stdio.h>
 

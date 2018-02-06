@@ -30,6 +30,9 @@
     <ClInclude Include="CPU.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RAM.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameBoyEmu.c">
@@ -42,6 +45,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CPU.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RAM.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

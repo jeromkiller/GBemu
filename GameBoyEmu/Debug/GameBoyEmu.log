@@ -1,7 +1,3 @@
-﻿  stdafx.c
-  Tools.c
-  GameBoyEmu.c
-  CPU.c
-  Generating Code...
+﻿  GameBoyEmu.c
   GameBoyEmu.vcxproj -> C:\Users\jerom\source\repos\GBemu\GBemu\Debug\GameBoyEmu.exe
   GameBoyEmu.vcxproj -> C:\Users\jerom\source\repos\GBemu\GBemu\Debug\GameBoyEmu.pdb (Partial PDB)

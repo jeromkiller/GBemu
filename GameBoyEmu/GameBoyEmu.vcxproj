@@ -147,6 +147,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CPU.h" />
+    <ClInclude Include="RAM.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Tools.h" />
@@ -154,6 +155,7 @@
   <ItemGroup>
     <ClCompile Include="CPU.c" />
     <ClCompile Include="GameBoyEmu.c" />
+    <ClCompile Include="RAM.c" />
     <ClCompile Include="stdafx.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

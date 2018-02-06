@@ -13,5 +13,6 @@
 
 #include "Tools.h"
 #include "CPU.h"
+#include "RAM.h"
 
 // TODO: reference additional headers your program requires here
