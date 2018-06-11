@@ -3,8 +3,8 @@
 //initialize RAM
 void RAM_init(void) {
 	/*	the gameboy cpu can adress memory locations from 0x0000 to 0xffff
-		on the physical hardware certain memory locations are tied to 
-		different locations, but to the cpu its all the same.	*/ 
+		different parts of memory are linked to different parts of the hardware
+		but to the cpu its all the same.	*/ 
 	RAM_ptr = (char *)malloc(0xffff);
 }
 
