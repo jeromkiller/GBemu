@@ -38,6 +38,9 @@ void PrintHex16bit(short value);
 //dumps the values in the CPU registers
 void DumpCPU();
 
+//test
+void test(void *value1, void *value2);
+
 #endif // !Tools
 
 

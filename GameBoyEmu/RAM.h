@@ -8,7 +8,7 @@
 //and for the resets i guess?
 //and for the start of user code?
 //but the thing is, we don't have to do these, since you can't realy do that, because the adresses always start at the beginning.
-#define LOCATION (RAM_ptr)
+#define RAM_START (RAM_ptr)
 
 //global variables
 char* RAM_ptr;

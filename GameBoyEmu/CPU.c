@@ -26,5 +26,10 @@ void CPU_dispose(void) {
 
 //read the value in memory at the Program Counter, increase it by 1 and return the read value.
 char Read_PC(void) {
-	return *(LOCATION + REG_PC++);
+	return *(RAM_START + REG_PC++);
+}
+
+//cpu instructions
+void _8bitADDliteral(void *value1, void *value2) {
+	*(char *)value1 += *(char *)value2;
 }

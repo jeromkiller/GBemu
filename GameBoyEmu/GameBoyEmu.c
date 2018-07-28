@@ -3,7 +3,9 @@
 
 #include "stdafx.h"
 
-
+void Func(int value) {
+	printf("%d: test\n\n", value);
+}
 
 int main()
 {
@@ -13,29 +15,30 @@ int main()
 	//some user code for testing
 	//insert hello world at memory location 0x0100
 	char *alpha = "Hello_World\n\0";
-	char *loc = LOCATION + 0x0100;
+	char *loc = RAM_START + 0x0100;
 	for (int i = 0; i < 13; i++) {
 		*(loc + i) = *(alpha + i);
 	}
 	
-	//print normaly from that location
-	loc = LOCATION + 0x0100;
-	printf("regular printf:\n%s\n", loc);
+	//small table of some fake instructions
+	struct Instruction_struct LookupTable[3] = {
+		{ _8bitADDliteral, &REG_A, &REG_F },{ test, &REG_D, &REG_A },{ test, &REG_SP, &REG_AF }
+	};
 
-	//print using the read pc function
-	printf("walk through memmory: \n");
-	for (int i = 0; i < 13; i++) {
-		printf("%c", Read_PC());
-	}
-	printf("\n");
+	REG_A = 0x2d;
+	REG_F = 0x11;
+	REG_D = 0x11;
 
-
-	//dump the CPU registers
+	//print data in the cpu registers
 	DumpCPU();
-	
+
+	//execute the first thing, in this case we add F to A
+	LookupTable[0].Instruction(LookupTable[0].value1, LookupTable[0].value2);
+
+	//print the cpu data again, to check if the operation succeded.
+	DumpCPU();
 
 	CPU_dispose();
 	RAM_dispose();
     return 0;
 }
-

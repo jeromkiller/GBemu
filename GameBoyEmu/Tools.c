@@ -74,5 +74,10 @@ void DumpCPU() {
 	PrintHex16bit(REG_PC);
 	printf("\nFlags:\tZNHCxxxx\n\t");
 	PrintBinary(REG_F);
-	printf("\n");
+	printf("\n\n");
+}
+
+//test thingy
+void test(void *value1, void *value2) {
+	printf("print %02x, %02x\n", *(char*)value1 & 0xff, *(char*)value2 & 0xff);
 }

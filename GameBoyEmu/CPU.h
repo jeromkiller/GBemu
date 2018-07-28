@@ -85,6 +85,12 @@ struct CPU_struct {
 	unsigned short PC;
 };
 
+struct Instruction_struct {
+	void(*Instruction)(void *value1, void* value2);
+	void *value1;
+	void *value2;
+};
+
 //global variables
 struct CPU_struct* CPU_ptr;
 
@@ -97,5 +103,7 @@ void CPU_dispose(void);
 
 //fetch the next instruction
 char Read_PC(void);
+
+void _8bitADDliteral(void *value1, void *value2);
 
 #endif // !CPU
