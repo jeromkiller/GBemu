@@ -27,7 +27,7 @@ int main()
 
 	REG_A = 0x2d;
 	REG_F = 0x11;
-	REG_D = 0x11;
+	//REG_D = 0x11;
 
 	//print data in the cpu registers
 	DumpCPU();
