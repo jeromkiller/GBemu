@@ -106,4 +106,5 @@ char Read_PC(void);
 
 void _8bitADDliteral(void *value1, void *value2);
 
+void _16bitADDliteral(void *value1, void *value2);
 #endif // !CPU

@@ -3,7 +3,7 @@
 //initiate CPU
 void CPU_init(void) {
 	//allocate space for the cpu registers
-	(struct CPU_struct *)CPU_ptr = (struct CPU_struct *)malloc(sizeof(struct CPU_struct));
+	CPU_ptr = (struct CPU_struct *)malloc(sizeof(struct CPU_struct));
 
 	//set all registers to value 0;
 	char* ptr = (char *)CPU_ptr;
@@ -32,4 +32,8 @@ char Read_PC(void) {
 //cpu instructions
 void _8bitADDliteral(void *value1, void *value2) {
 	*(char *)value1 += *(char *)value2;
+}
+
+void _16bitADDliteral(void *value1, void *value2){
+	*(short *)value1 += *(short *)value2;
 }

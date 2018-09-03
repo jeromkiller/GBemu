@@ -19,10 +19,10 @@ int main()
 	for (int i = 0; i < 13; i++) {
 		*(loc + i) = *(alpha + i);
 	}
-	
+
 	//small table of some fake instructions
 	struct Instruction_struct LookupTable[3] = {
-		{ _8bitADDliteral, &REG_A, &REG_F },{ test, &REG_D, &REG_A },{ test, &REG_SP, &REG_AF }
+		{ _8bitADDliteral, &REG_A, &REG_F },{ _16bitADDliteral, &REG_BC, &REG_AF },{ test, &REG_SP, &REG_AF }
 	};
 
 	REG_A = 0x2d;

@@ -1,8 +1,4 @@
 *.o
 *.swp
 
-**/debug
-**/x64
-
-*.sln
-**/.vs
+**/.vscode
