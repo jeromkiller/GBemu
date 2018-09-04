@@ -2,3 +2,6 @@
 *.swp
 
 **/.vscode
+**/.obs
+
+GameBoy
