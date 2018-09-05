@@ -7,6 +7,7 @@
 //defines
 
 //structs
+//DEPRECATED: this struct is no longer in use, and should be removed at a later date
 struct DB_Opcode {
 	char Instruction[4];
 	char Param1[4];
@@ -21,9 +22,11 @@ struct DB_Opcode {
 
 //function prototypes
 //prints a single opcode
+//DEPRECATED: this function is no longer in use, and should be removed at a later date
 void PrintOpcode(struct DB_Opcode Opcode);
 
 //prints an array of opcodes
+//DEPRECATED: this function is no longer in use, and should be removed at a later date
 void PrintAllOpcodes(struct DB_Opcode *Opcode, int count);
 
 //prints an 8 bit value in binary
@@ -42,5 +45,3 @@ void DumpCPU();
 void test(void *value1, void *value2);
 
 #endif // !Tools
-
-

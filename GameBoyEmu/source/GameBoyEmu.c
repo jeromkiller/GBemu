@@ -3,8 +3,8 @@
 
 #include "stdafx.h"
 
-void Func(int value) {
-	printf("%d: test\n\n", value);
+void Func(void *value1, void *value2) {
+	printf("test\n\n");
 }
 
 int main()
@@ -22,7 +22,9 @@ int main()
 
 	//small table of some fake instructions
 	struct Instruction_struct LookupTable[3] = {
-		{ _8bitADDliteral, &REG_A, &REG_F },{ _16bitADDliteral, &REG_BC, &REG_AF },{ test, &REG_SP, &REG_AF }
+		{ _8bitADDliteral, &REG_A, &REG_F },
+		{ _16bitADDliteral, &REG_BC, &REG_AF },
+		{ Func, NULL, NULL }
 	};
 
 	REG_A = 0x2d;
@@ -34,6 +36,7 @@ int main()
 
 	//execute the first thing, in this case we add F to A
 	LookupTable[0].Instruction(LookupTable[0].value1, LookupTable[0].value2);
+	LookupTable[2].Instruction(LookupTable[2].value1, LookupTable[2].value2);
 
 	//print the cpu data again, to check if the operation succeded.
 	DumpCPU();

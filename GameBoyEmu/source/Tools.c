@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 //prints a single opcode
+//DEPRECATED: this function is no longer in use, and should be removed at a later date
 void PrintOpcode(struct DB_Opcode Opcode) 
 {
 	printf("%s\t", Opcode.Instruction);
@@ -11,6 +12,7 @@ void PrintOpcode(struct DB_Opcode Opcode)
 }
 
 //prints an array of opcodes
+//DEPRECATED: this function is no longer in use, and should be removed at a later date
 void PrintAllOpcodes(struct DB_Opcode *Opcode, int count) 
 {
 	printf("==============================================\n");

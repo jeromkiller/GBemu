@@ -1,0 +1,45 @@
+For the emulator to interperet the opcodes a lookup table will be generated.
+A (hopefully) small program will be written that will generate a lookup table.
+
+This struct represents each entry in the lookup table
+The struct contains:
+- a function pointer that will be called with value1 and value2 as parameters
+- a void pointer to value1
+- a void pointer to value2
+- value1 and value2 can be set to NULL if a function does not need a parameter
+
+    struct Instruction_struct {
+	    void(*Instruction)(void *value1, void* value2);
+	    void *value1;
+	    void *value2;
+    };
+
+The LookupTable contain a list off every single instruction coresponding to each opcode
+The instruction and parameters will be selected from the tables depicted in OpcodeTranslationTable.docx
+
+	struct Instruction_struct LookupTable[AMOUNT_OF_OPCODES] = {
+		{ _8bitADDliteral, &REG_A, &REG_B },
+        { _8bitADDliteral, &REG_A, &REG_C },
+        { _16bitADDliteral, &REG_BC, &REG_AF },
+        { test, NULL, NULL },
+        .
+        .
+        .
+	};
+
+The function for each opcode can be called through something like:
+    LookupTable[OPCODE].Instruction(LookupTable[OPCODE].value1, LookupTable[OPCODE].value2);
+
+This lookuptable will allow for quick execution at the cost of some memory
+This lookuptalbe also allows for easier reuse of different functions.
+
+The program that will generate this lookuptable will run through the table in OpcodeTranslationTable.docx
+for each opcode.
+and will add an entry to the lookuptable from opcodes 0 to n, where n is the final opcode.
+
+TODO:
+things to look into:
+    -Do similar functions like "ADD A, B" and "ADD A, r8" use the same function call,
+    or does a seperate functions have to be created because r8 has to be read from memory?
+    
+    -probably some other stuff to lookinto as well before we get started...
