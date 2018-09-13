@@ -9,9 +9,11 @@ void Func(void *value1, void *value2) {
 
 int main()
 {
+	//startup
 	CPU_init();
 	RAM_init();
 
+///////////////////////////////////////////////////////////////////////
 	//some user code for testing
 	//insert hello world at memory location 0x0100
 	char *alpha = "Hello_World\n\0";
@@ -28,7 +30,7 @@ int main()
 	};
 
 	REG_A = 0x2d;
-	REG_F = 0x11;
+	REG_F = 0x18;
 	//REG_D = 0x11;
 
 	//print data in the cpu registers
@@ -40,6 +42,8 @@ int main()
 
 	//print the cpu data again, to check if the operation succeded.
 	DumpCPU();
+
+///////////////////////////////////////////////////////////////////////
 
 	CPU_dispose();
 	RAM_dispose();
