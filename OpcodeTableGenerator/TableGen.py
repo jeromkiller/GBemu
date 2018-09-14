@@ -33,12 +33,12 @@ for opcode in range(0, 255):
             elif y == 3:
                 print("_JR, NULL, NULL")
             else:
-                print("_JR, %s, NULL", cc[y-4])
+                print("_JR, %s, NULL"% cc[y-4])
         elif z ==1:
             if q == 0:
-                print("_LL16, %s, NULL", rp[p])
+                print("_LL16, %s, NULL"% rp[p])
             else:
-                print("_ADD, HL, %s", rp[p])
+                print("_ADD16, HL, %s"% rp[p])
         elif z ==2:
             if q == 0:
                 if p == 0:
@@ -60,15 +60,15 @@ for opcode in range(0, 255):
                     print("_LDD, A, (HL)")
         elif z ==3:
             if q == 0:
-                print("_INC16, %s, NULL", rp[p])
+                print("_INC16, %s, NULL"% rp[p])
             else:
-                print("_DEC16, %s, NULL", rp[p])
+                print("_DEC16, %s, NULL"% rp[p])
         elif z ==4:
-            print("_INC8, %s, NULL", r[y])
+            print("_INC8, %s, NULL"% r[y])
         elif z ==5:
-            print("_DEC, %s, NULL", r[y])
+            print("_DEC, %s, NULL"% r[y])
         elif z ==6:
-            print("_LL8, %s, NULL", r[y])
+            print("_LL8, %s, NULL"% r[y])
         elif z ==7:
             if y == 0:
                 print("_RLCA, NULL, NULL")
@@ -91,9 +91,9 @@ for opcode in range(0, 255):
         if z == 6:
             print("_HALT, NULL, NULL")
         else:
-            print("_LD8, %s, %s", r[y], r[z])
+            print("_LD8, %s, %s"% (r[y], r[z]))
     elif x == 2:
-        print("%s, %s, NULL", alu[y], r[z])
+        print("%s, %s, NULL"% (alu[y], r[z]))
     elif x == 3:
         if z == 0:
             if q == 0:
