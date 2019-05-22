@@ -32,27 +32,27 @@ void PrintHex16bit(short value)
 void DumpCPU() 
 {
 	printf("A: ");
-	PrintHex8bit(REG_A);
+	PrintHex8bit(*REG_A);
 	printf("F: ");
-	PrintHex8bit(REG_F);
+	PrintHex8bit(*REG_F);
 	printf("\nB: ");
-	PrintHex8bit(REG_B);
+	PrintHex8bit(*REG_B);
 	printf("C: ");
-	PrintHex8bit(REG_C);
+	PrintHex8bit(*REG_C);
 	printf("\nD: ");
-	PrintHex8bit(REG_D);
+	PrintHex8bit(*REG_D);
 	printf("E: ");
-	PrintHex8bit(REG_E);
+	PrintHex8bit(*REG_E);
 	printf("\nH: ");
-	PrintHex8bit(REG_H);
+	PrintHex8bit(*REG_H);
 	printf("L: ");
-	PrintHex8bit(REG_L);
+	PrintHex8bit(*REG_L);
 	printf("\nSP: ");
-	PrintHex16bit(REG_SP);
+	PrintHex16bit(*REG_SP);
 	printf("\nPC: ");
-	PrintHex16bit(REG_PC);
+	PrintHex16bit(*REG_PC);
 	printf("\nFlags:\tZNHCxxxx\n\t");
-	PrintBinary(REG_F);
+	PrintBinary(*REG_F);
 	printf("\n\n");
 }
 

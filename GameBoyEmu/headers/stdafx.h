@@ -3,13 +3,17 @@
 // are changed infrequently
 //
 
-#pragma once
+#ifndef _STDAFX_H
+#define _STDAFX_H
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "Tools.h"
 #include "CPU.h"
 #include "RAM.h"
+
+#endif //!STDAFX
 
 // TODO: reference additional headers your program requires here

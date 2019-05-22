@@ -30,7 +30,7 @@ int main()
 	};
 
 	*REG_A = 0x22;
-	*REG_F = 0x11;
+	*REG_F = 0x18;
 	//*REG_D = 0x11;
 
 	//print data in the cpu registers

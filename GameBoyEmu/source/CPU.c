@@ -1,11 +1,13 @@
 #include "stdafx.h"
 
+struct CPU_struct* CPU_ptr = NULL;
+
 //initiate CPU
 void CPU_init(void) 
 {
 	
 	//check if the CPU is already inited
-	if(CPU_ptr == NULL)
+	if(CPU_ptr != NULL)
 	{
 		return;
 	}
@@ -14,10 +16,10 @@ void CPU_init(void)
 	CPU_ptr = (struct CPU_struct *)malloc(sizeof(struct CPU_struct));
 
 	//set all registers to value 0;
-	memset(CPU_struct, 0, sizeof(CPU_struct));
+	memset(CPU_ptr, 0, sizeof(struct CPU_struct));
 
 	//set the stack pointer to location 0x0100
-	REG_PC = 0x0100;
+	*REG_PC = 0x0100;
 }
 
 //free the cpu registers
@@ -34,7 +36,7 @@ void CPU_dispose(void)
 //read the value in memory at the Program Counter, increase it by 1 and return the read value.
 char Read_PC(void) 
 {
-	return *(RAM_START + REG_PC++);
+	return *(RAM_START + (*REG_PC)++);
 }
 
 //cpu instructions

@@ -13,7 +13,7 @@ ODIR=$(RDIR)/.obs
 
 #compiler and flags to use
 CC=gcc
-CFLAGS= -Wall -I $(HDIR)
+CFLAGS= -Wall -g -I $(HDIR)
 
 #File paths
 SRCS := $(wildcard $(SDIR)/*.c)

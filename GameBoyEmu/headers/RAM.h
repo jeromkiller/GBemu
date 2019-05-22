@@ -1,6 +1,5 @@
-#pragma once
-#ifndef RAM_h
-#define RAM_h
+#ifndef _RAM_h
+#define _RAM_h
 
 //defines
 //i guess add a macros for different parts of the stack?
@@ -11,7 +10,7 @@
 #define RAM_START (RAM_ptr)
 
 //global variables
-char* RAM_ptr == NULL;
+extern char* RAM_ptr;
 
 //function prototypes
 //initialize RAM

@@ -1,13 +1,15 @@
 
 #include "stdafx.h"
 
+char* RAM_ptr = NULL;
+
 //initialize RAM
 void RAM_init(void) 
 {
 	/*	the gameboy cpu can adress memory locations from 0x0000 to 0xffff
 		different parts of memory are linked to different parts of the hardware
 		but to the cpu its all the same.	*/ 
-	if(RAM_ptr != NULL)
+	if(RAM_ptr == NULL)
 	{
 		RAM_ptr = (char *)malloc(0xffff);
 	}
