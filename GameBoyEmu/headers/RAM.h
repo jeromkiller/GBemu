@@ -11,7 +11,7 @@
 #define RAM_START (RAM_ptr)
 
 //global variables
-char* RAM_ptr;
+char* RAM_ptr == NULL;
 
 //function prototypes
 //initialize RAM

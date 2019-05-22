@@ -1,3 +1,6 @@
+#name of the executable
+FILENAME = gameBoy
+
 #File Directories
 #Root dir where sub dirs are located
 RDIR=GameBoyEmu
@@ -22,8 +25,8 @@ $(ODIR)/%.o : $(SDIR)/%.c $(HEAD)
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 #build project 
-GameBoy : $(OBJS)
-	$(CC) -o GameBoy $(OBJS) $(CFLAGS)
+$(FILENAME) : $(OBJS)
+	$(CC) -o $@ $(OBJS) $(CFLAGS)
 
 #before objects can be built, the object folder has to be created
 $(OBJS): | $(ODIR)
@@ -35,3 +38,4 @@ $(ODIR):
 .PHONY : clean
 clean :
 	rm -r $(ODIR)
+	rm $(FILENAME)

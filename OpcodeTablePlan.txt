@@ -1,5 +1,5 @@
 For the emulator to interperet the opcodes a lookup table will be generated.
-A (hopefully) small program will be written that will generate a lookup table.
+A (not realy) small program will be written that will generate a lookup table.
 
 This struct represents each entry in the lookup table
 The struct contains:
@@ -18,9 +18,9 @@ The LookupTable contain a list off every single instruction coresponding to each
 The instruction and parameters will be selected from the tables depicted in OpcodeTranslationTable.docx
 
 	struct Instruction_struct LookupTable[AMOUNT_OF_OPCODES] = {
-		{ _8bitADDliteral, &REG_A, &REG_B },
-        { _8bitADDliteral, &REG_A, &REG_C },
-        { _16bitADDliteral, &REG_BC, &REG_AF },
+		{ _8bitADDliteral, REG_A, REG_B },
+        { _8bitADDliteral, REG_A, REG_C },
+        { _16bitADDliteral, REG_BC, REG_AF },
         { test, NULL, NULL },
         .
         .

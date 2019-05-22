@@ -156,6 +156,7 @@ for opcode in range(0, 255):
                 pass
             else:
                 pass #something went wrong if you get here
+                print("OH DEAR GOT, SOMETHING WENT HANSOMLY WRONG...")
         elif z ==4:
             pass
         elif z ==5:

@@ -1,33 +1,9 @@
 #include "stdafx.h"
 
-//prints a single opcode
-//DEPRECATED: this function is no longer in use, and should be removed at a later date
-void PrintOpcode(struct DB_Opcode Opcode) 
-{
-	printf("%s\t", Opcode.Instruction);
-	printf("%s,%s\t", Opcode.Param1, Opcode.Param2);
-	PrintHex8bit(Opcode.Opcode);
-	PrintBinary(Opcode.Opcode);
-	printf("%d\n", Opcode.Cycles);
-}
-
-//prints an array of opcodes
-//DEPRECATED: this function is no longer in use, and should be removed at a later date
-void PrintAllOpcodes(struct DB_Opcode *Opcode, int count) 
-{
-	printf("==============================================\n");
-
-	for (int i = 0; i < count; i++) {
-		PrintOpcode(*(Opcode + i));
-	}
-
-	printf("==============================================\n");
-}
-
 //prints an 8 bit value in binary
 void PrintBinary(char value)
 {
-	unsigned char bit = 128;
+	unsigned char bit = 0x80;
 	for (char i = 0; i < 8; i++) {
 		if ((bit >> i) & value) {
 			printf("1");
@@ -53,7 +29,8 @@ void PrintHex16bit(short value)
 }
 
 //dumps the values in the CPU registers
-void DumpCPU() {
+void DumpCPU() 
+{
 	printf("A: ");
 	PrintHex8bit(REG_A);
 	printf("F: ");
@@ -80,6 +57,7 @@ void DumpCPU() {
 }
 
 //test thingy
-void test(void *value1, void *value2) {
+void test(void *value1, void *value2) 
+{
 	printf("print %02x, %02x\n", *(char*)value1 & 0xff, *(char*)value2 & 0xff);
 }
