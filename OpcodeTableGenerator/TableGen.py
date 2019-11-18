@@ -50,7 +50,7 @@ else:
 
 #Start of user code
 #Man this is badly structured...
-for opcode in range(0, 255):
+for opcode in range(0, 256):
     #get the letter values for the opcode
     x = (opcode & 0b11000000) >> 6
     y = (opcode & 0b00111000) >> 3
@@ -218,7 +218,7 @@ for opcode in range(0, 255):
     #==============
     # CB Prefixed Opcodes
     #==============
-for opcode in range(0, 255):
+for opcode in range(0, 256):
     #get the letter values for the opcode
     x = (opcode & 0b11000000) >> 6
     y = (opcode & 0b00111000) >> 3
@@ -244,4 +244,4 @@ for opcode in range(0, 255):
             print(")", end = "")
         if Commas:
             print(",", end="")
-            print("")
+        print("")
