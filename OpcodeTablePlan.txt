@@ -37,12 +37,24 @@ The program that will generate this lookuptable will run through the table in Op
 for each opcode.
 and will add an entry to the lookuptable from opcodes 0 to n, where n is the final opcode.
 
+Opcodes now get spit out,
+
+CB prefixed opcodes will use a different struct
+struct CB_Instruction_struct {
+    void(*Instruction)(unsigned char value, void* register)
+    unsigned char value
+    void* register
+}
+
 TODO:
 things to look into:
-    -Do similar functions like "ADD A, B" and "ADD A, r8" use the same function call,
+    - Do similar functions like "ADD A, B" and "ADD A, r8" use the same function call,
     or does a seperate functions have to be created because r8 has to be read from memory?
     >no probably not, because first of all the ammount of clock cycles wouldn't match up propperly as "ADD A, B" takes 4 clock cycles
     and "ADD A, r8" requires 8 clock cycles. this however can still easily be done with matching cycles
     first calling a load to read the immediate data into a temporary variable, and then preforming the normal addition.
     
-    -probably some other stuff to lookinto as well before we get started...
+    - probably some other stuff to lookinto as well before we get started...
+
+    - also, the registers in parenthesies eg. (BC) need to be handled
+    - and the registers need to be propperly named
