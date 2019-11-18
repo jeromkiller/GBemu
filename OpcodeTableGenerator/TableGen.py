@@ -11,6 +11,7 @@ NonPrefixed = False
 CBPrefixed = False
 Parenthesies = False
 Commas = False
+Curlies = False
 
 #replace these letters with the propper values later
 r = ["B", "C", "D", "E", "H", "L", "(HL)", "A"]
@@ -25,27 +26,31 @@ import sys
 args = len(sys.argv)
 if args < 2:
     print("Not enough arguments")
-    print("Use -a for all options")
+    print("Use -a for all options (except curlies and parenthesies)")
     print("Use -n for non Prefixed opcodes")
     print("Use -c for CB prefixed opcodes")
-    print("Use -par for parenthesies '()'")
     print("Use -com to seperate each opcode with a ','")
+    print("Use -par for parenthesies '()'")
+    print("Use -curl for curly brackets '{}'")
     exit(0)
 else:
     for arg in range(0, args):
         if str(sys.argv[arg]) == '-a':
             NonPrefixed = True
             CBPrefixed = True
-            Parenthesies = True
             Commas = True
         elif str(sys.argv[arg]) == '-n':
             NonPrefixed = True
         elif str(sys.argv[arg]) == "-c":
             CBPrefixed = True
-        elif str(sys.argv[arg]) == "-par":
-            Parenthesies = True
         elif str(sys.argv[arg]) == "-com":
             Commas = True
+        elif str(sys.argv[arg]) == "-par":
+            Parenthesies = True
+            Curlies = False
+        elif str(sys.argv[arg]) == "-curl":
+            Curlies = True
+            Parenthesies = False
 
 
 #Start of user code
@@ -58,10 +63,11 @@ for opcode in range(0, 256):
     p = (opcode & 0b00110000) >> 4
     q = (opcode & 0b00001000) >> 3
 
-    if Parenthesies:
-        print("(", end="")
-
     if NonPrefixed:
+        if Parenthesies:
+            print("( ", end="")
+        elif Curlies:
+            print("{ ", end = "")
         #find x
         if x == 0:
             if z == 0:
@@ -210,7 +216,9 @@ for opcode in range(0, 256):
                 print("_RST, %s, NULL"%(y * 8), end="") #the numarical value is an interger, not a pointer
 
         if Parenthesies:
-            print(")",  end = "")
+            print(" )",  end = "")
+        elif Curlies:
+            print(" }", end = "")
         if Commas:
             print(",", end="")
         print("")
@@ -227,21 +235,27 @@ for opcode in range(0, 256):
     q = (opcode & 0b00001000) >> 3
 #real wonkey code this right here
 
-    if Parenthesies:
-        print("(", end = "")
+
 
     if CBPrefixed:
+        if Parenthesies:
+            print("( ", end = "")
+        elif Curlies:
+            print("{ ", end = "")
+
         if x == 0:
             print("%s, %s, NULL"%(rot[y], r[z]), end="")
         elif x ==1:
-            print("_BIT %s, %s, NULL"%(y, r[z]), end="")
+            print("_BIT, %s, %s"%(y, r[z]), end="")
         elif x ==2:
-            print("_RES %s, %s, NULL"%(y, r[z]), end="")
+            print("_RES, %s, %s"%(y, r[z]), end="")
         elif x ==3:
-            print("_SET %s, %s, NULL"%(y, r[z]), end="")
+            print("_SET, %s, %s"%(y, r[z]), end="")
 
         if Parenthesies:
-            print(")", end = "")
+            print(" )", end = "")
+        elif Curlies:
+            print(" }", end = "")
         if Commas:
             print(",", end="")
         print("")
