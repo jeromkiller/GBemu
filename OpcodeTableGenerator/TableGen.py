@@ -1,17 +1,13 @@
 #how do we write python code again?
+import sys
 
 #Setup some global values
-x = 0
-y = 0
-z = 0
-p = 0
-q = 0
-
-NonPrefixed = False
-CBPrefixed = False
-Parenthesies = False
-Commas = False
-Curlies = False
+NonPrefixed   = False      
+CBPrefixed    = False      
+Parenthesies  = False          
+Commas        = False  
+Curlies       = False  
+Numbers       = False
 
 #replace these letters with the propper values later
 r = ["B", "C", "D", "E", "H", "L", "(HL)", "A"]
@@ -21,86 +17,124 @@ cc = ["NZ", "Z", "NC", "C", "PO", "PE", "P", "M"]
 alu = ["_ADD", "_ADC", "_SUB", "_SBC", "_AND", "_XOR", "_OR", "_CP"]
 rot = ["_RLC", "_RRC", "_RL", "_RR", "_SLA", "_SRA", "_SLL", "_SRL"]
 
+def main():
+    #user code here
+    #first checkout user input
+    userInput()
+    if(NonPrefixed):
+        for opcode in range(0, 256):
+            printBegin()
+            PrintNoPrefix(opcode)
+            printEnd(opcode)
+    
+    if(CBPrefixed):
+        for opcode in range(0, 256):
+            printBegin()
+            printCBprefixed(opcode)
+            printEnd(opcode)
+
+def printBegin():
+    if Parenthesies:
+        print("( ", end="")
+    elif Curlies:
+        print("{ ", end = "")
+
+def printEnd(_opcode):
+    if Parenthesies:
+        print(" )",  end = "")
+    elif Curlies:
+        print(" }", end = "")
+    if Commas:
+        print(",", end="")
+    if Numbers:
+        print(_opcode, end=" ")
+    print("")
+
 #Validate user input
-import sys
-args = len(sys.argv)
-if args < 2:
-    print("Not enough arguments")
-    print("Use -a for all options (except curlies and parenthesies)")
-    print("Use -n for non Prefixed opcodes")
-    print("Use -c for CB prefixed opcodes")
-    print("Use -com to seperate each opcode with a ','")
-    print("Use -par for parenthesies '()'")
-    print("Use -curl for curly brackets '{}'")
-    exit(0)
-else:
-    for arg in range(0, args):
-        if str(sys.argv[arg]) == '-a':
-            NonPrefixed = True
-            CBPrefixed = True
-            Commas = True
-        elif str(sys.argv[arg]) == '-n':
-            NonPrefixed = True
-        elif str(sys.argv[arg]) == "-c":
-            CBPrefixed = True
-        elif str(sys.argv[arg]) == "-com":
-            Commas = True
-        elif str(sys.argv[arg]) == "-par":
-            Parenthesies = True
-            Curlies = False
-        elif str(sys.argv[arg]) == "-curl":
-            Curlies = True
-            Parenthesies = False
 
-
-#Start of user code
+def userInput():
+    args = len(sys.argv)
+    if args < 2:
+        print("Not enough arguments")
+        print("Use -a for all options (except curlies and parenthesies)")
+        print("Use -n for non Prefixed opcodes")
+        print("Use -c for CB prefixed opcodes")
+        print("Use -com to seperate each opcode with a ','")
+        print("Use -par for parenthesies '()'")
+        print("Use -curl for curly brackets '{}'")
+        exit(0)
+    else:
+        global NonPrefixed 
+        global CBPrefixed  
+        global Parenthesies
+        global Commas      
+        global Curlies     
+        global Numbers
+        
+        for arg in range(0, args):
+            if str(sys.argv[arg]) == '-a':
+                NonPrefixed = True
+                CBPrefixed = True
+                Commas = True
+            elif str(sys.argv[arg]) == '-n':
+                NonPrefixed = True
+            elif str(sys.argv[arg]) == "-c":
+                CBPrefixed = True
+            elif str(sys.argv[arg]) == "-com":
+                Commas = True
+            elif str(sys.argv[arg]) == "-num":
+                Numbers = True
+            elif str(sys.argv[arg]) == "-par":
+                Parenthesies = True
+                Curlies = False
+            elif str(sys.argv[arg]) == "-curl":
+                Curlies = True
+                Parenthesies = False
 #Man this is badly structured...
-for opcode in range(0, 256):
+
+def PrintNoPrefix( _opcode ):
     #get the letter values for the opcode
-    x = (opcode & 0b11000000) >> 6
-    y = (opcode & 0b00111000) >> 3
-    z = (opcode & 0b00000111)
-    p = (opcode & 0b00110000) >> 4
-    q = (opcode & 0b00001000) >> 3
+    x = (_opcode & 0b11000000) >> 6
+    y = (_opcode & 0b00111000) >> 3
+    z = (_opcode & 0b00000111)
+    p = (_opcode & 0b00110000) >> 4
+    q = (_opcode & 0b00001000) >> 3
 
     if NonPrefixed:
-        if Parenthesies:
-            print("( ", end="")
-        elif Curlies:
-            print("{ ", end = "")
+
         #find x
         if x == 0:
             if z == 0:
                 if y == 0:
                     print("_NOP, NULL, NULL", end="")
                 elif y == 1:
-                    print("LD, SP, NULL", end="")
+                    print("_LD16, NULL, SP", end="") #load SP into a16
                 elif y == 2:
                     print("_STOP, NULL, NULL", end="")
                 elif y == 3:
-                    print("_JR, NULL, NULL", end="")
+                    print("_JR, NULL, NULL", end="") #jump r8 ahead
                 else:
-                    print("_JR, %s, NULL"% cc[y-4], end="")
+                    print("_JR, %s, NULL"% cc[y-4], end="") #jump with condition, might need to get rolled out, or filtered (like put the condition in the second spot, so we can check it depending on that)
             elif z ==1:
                 if q == 0:
-                    print("_LL16, %s, NULL"% rp[p], end="")
+                    print("_LD16, %s, NULL"% rp[p], end="") #load d16 into rp[p]
                 else:
                     print("_ADD16, HL, %s"% rp[p], end="")
             elif z ==2:
                 if q == 0:
                     if p == 0:
-                        print("_LL8, (BC), A", end="")
+                        print("_LD8, (BC), A", end="")
                     elif p == 1:
-                        print("_LL8, (DE), A", end="")
+                        print("_LD8, (DE), A", end="")
                     elif p == 2:
                         print("_LDI, (HL), A", end="")
                     elif p == 3:
                         print("_LDD, (HL), A", end="")
                 else:
                     if p == 0:
-                        print("_LL8, A, (BC)", end="")
+                        print("_LD8, A, (BC)", end="")
                     elif p == 1:
-                        print("_LL8, A, (DE)", end="")
+                        print("_LD8, A, (DE)", end="")
                     elif p == 2:
                         print("_LDI, A, (HL)", end="")
                     elif p == 3:
@@ -115,7 +149,7 @@ for opcode in range(0, 256):
             elif z ==5:
                 print("_DEC, %s, NULL"% r[y], end="")
             elif z ==6:
-                print("_LL8, %s, NULL"% r[y], end="")
+                print("_LD8, %s, NULL"% r[y], end="")
             elif z ==7:
                 if y == 0:
                     print("_RLCA, NULL, NULL", end="")
@@ -135,10 +169,9 @@ for opcode in range(0, 256):
                     print("_CCF, NULL, NULL", end="")
                 
         elif x == 1:
-            if z == 6:
+            if z == 6 and y == 6:
                 print("_HALT, NULL, NULL", end="")
             else:
-
                 print("_LD8, %s, %s"% (r[y], r[z]), end="")
         elif x == 2:
             print("%s, %s, NULL"% (alu[y], r[z]), end="")
@@ -216,47 +249,27 @@ for opcode in range(0, 256):
             elif z ==7:
                 print("_RST, %s, NULL"%(y * 8), end="") #the numarical value is an interger, not a pointer
 
-        if Parenthesies:
-            print(" )",  end = "")
-        elif Curlies:
-            print(" }", end = "")
-        if Commas:
-            print(",", end="")
-        print("")
+
 
     #==============
     # CB Prefixed Opcodes
     #==============
-for opcode in range(0, 256):
+def printCBprefixed(_opcode):
     #get the letter values for the opcode
-    x = (opcode & 0b11000000) >> 6
-    y = (opcode & 0b00111000) >> 3
-    z = (opcode & 0b00000111)
-    p = (opcode & 0b00110000) >> 4
-    q = (opcode & 0b00001000) >> 3
+    x = (_opcode & 0b11000000) >> 6
+    y = (_opcode & 0b00111000) >> 3
+    z = (_opcode & 0b00000111)
+    p = (_opcode & 0b00110000) >> 4
+    q = (_opcode & 0b00001000) >> 3
 #real wonkey code this right here
 
+    if x == 0:
+        print("%s, %s, NULL"%(rot[y], r[z]), end="")
+    elif x ==1:
+        print("_BIT, %s, %s"%(y, r[z]), end="")
+    elif x ==2:
+        print("_RES, %s, %s"%(y, r[z]), end="")
+    elif x ==3:
+        print("_SET, %s, %s"%(y, r[z]), end="")
 
-
-    if CBPrefixed:
-        if Parenthesies:
-            print("( ", end = "")
-        elif Curlies:
-            print("{ ", end = "")
-
-        if x == 0:
-            print("%s, %s, NULL"%(rot[y], r[z]), end="")
-        elif x ==1:
-            print("_BIT, %s, %s"%(y, r[z]), end="")
-        elif x ==2:
-            print("_RES, %s, %s"%(y, r[z]), end="")
-        elif x ==3:
-            print("_SET, %s, %s"%(y, r[z]), end="")
-
-        if Parenthesies:
-            print(" )", end = "")
-        elif Curlies:
-            print(" }", end = "")
-        if Commas:
-            print(",", end="")
-        print("")
+main()
