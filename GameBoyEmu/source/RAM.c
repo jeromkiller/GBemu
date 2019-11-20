@@ -24,4 +24,3 @@ void RAM_dispose(void)
 		free(RAM_ptr);
 		RAM_ptr = NULL;
 	}
-}
