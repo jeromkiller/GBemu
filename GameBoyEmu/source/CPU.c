@@ -38,14 +38,3 @@ char Read_PC(void)
 {
 	return *(RAM_START + (*REG_PC)++);
 }
-
-//cpu instructions
-void _8bitADDliteral(void *value1, void *value2) 
-{
-	*(char *)value1 += *(char *)value2;
-}
-
-void _16bitADDliteral(void *value1, void *value2)
-{
-	*(short *)value1 += *(short *)value2;
-}

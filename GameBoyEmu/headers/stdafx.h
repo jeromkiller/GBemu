@@ -13,6 +13,7 @@
 #include "Tools.h"
 #include "CPU.h"
 #include "RAM.h"
+#include "Opcodes.h"
 
 #endif //!STDAFX
 

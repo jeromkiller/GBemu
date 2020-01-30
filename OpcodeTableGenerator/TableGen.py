@@ -47,6 +47,7 @@ def printEnd(_opcode):
     if Commas:
         print(",", end="")
     if Numbers:
+        print("\t", end="")
         print(_opcode, end=" ")
     print("")
 
@@ -55,11 +56,14 @@ def printEnd(_opcode):
 def userInput():
     args = len(sys.argv)
     if args < 2:
-        print("Not enough arguments")
-        print("Use -a for all options (except curlies and parenthesies)")
+        print("Not enough arguments\n")
+        print("Opcode set selection")
+        print("Use -a for '-n -c -com'")
         print("Use -n for non Prefixed opcodes")
         print("Use -c for CB prefixed opcodes")
+        print("\nMaking lines look pretty")
         print("Use -com to seperate each opcode with a ','")
+        print("Use -num to number each opcode, mainly used for debugging")
         print("Use -par for parenthesies '()'")
         print("Use -curl for curly brackets '{}'")
         exit(0)
@@ -221,9 +225,9 @@ def PrintNoPrefix( _opcode ):
                 elif p == 1:
                     print("_JP, C, a16", end="") #NULL = a16
                 elif p == 2:
-                    print("_LD8, a16, A", end="") #NULL = a16
+                    print("_LD8, (a16), A", end="") #NULL = a16
                 elif p == 3:
-                    print("_LD8, A, a16", end="") #NULL = a16
+                    print("_LD8, A, (a16)", end="") #NULL = a16
         elif z ==3:
             if y == 0:
                 print("_JP, a16, NULL", end="")    #first NULL = a16

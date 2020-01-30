@@ -3,15 +3,13 @@
 
 #include "stdafx.h"
 
-void Func(void *value1, void *value2) {
-	printf("test\n\n");
-}
 
 int main()
 {
 	//startup
 	CPU_init();
 	RAM_init();
+	//struct Instruction_struct* Normal_Opcodes = Normal_Opcodes_init();
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
@@ -22,23 +20,21 @@ int main()
 		*(loc + i) = *(alpha + i);
 	}
 
-	//small table of some fake instructions
-	struct Instruction_struct LookupTable[3] = {
-		{ _8bitADDliteral, REG_A, REG_F },
-		{ _16bitADDliteral, REG_BC, REG_AF },
-		{ Func, NULL, NULL }
-	};
-
 	*REG_A = 0x22;
-	*REG_F = 0x18;
+	*REG_F = 0x10;
 	//*REG_D = 0x11;
 
 	//print data in the cpu registers
 	DumpCPU();
 
 	//execute the first thing, in this case we add F to A
-	LookupTable[0].Instruction(LookupTable[0].value1, LookupTable[0].value2);
-	LookupTable[2].Instruction(LookupTable[2].value1, LookupTable[2].value2);
+//	Normal_Opcodes[0].Instruction(Normal_Opcodes[0].value1, Normal_Opcodes[0].value2);
+//	Normal_Opcodes[2].Instruction(Normal_Opcodes[2].value1, Normal_Opcodes[2].value2);
+	struct Instruction_struct op = get_NormalOpcode(2);
+	op.Instruction(op.value1, op.value2);
+
+	FLAG_Z = 1;
+	FLAG_H = 1;
 
 	//print the cpu data again, to check if the operation succeded.
 	DumpCPU();

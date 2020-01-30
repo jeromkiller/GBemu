@@ -27,10 +27,10 @@
 /*	|   7   |  6   |   5    |   4    |3|2|1|0|
 	|Zero(Z)|Sub(N)|HalfC(H)|Carry(C)|0|0|0|0|
 */
-#define FLAG_Z (&CPU_ptr->Zero)
-#define FLAG_N (&CPU_ptr->Subtract)
-#define FLAG_H (&CPU_ptr->HCarry)
-#define FLAG_C (&CPU_ptr->Carry)
+#define FLAG_Z (CPU_ptr->Zero)
+#define FLAG_N (CPU_ptr->Subtract)
+#define FLAG_H (CPU_ptr->HCarry)
+#define FLAG_C (CPU_ptr->Carry)
 
 //structs
 struct CPU_struct 
@@ -47,10 +47,7 @@ struct CPU_struct
 				unsigned char F;
 
 				struct {
-					char null0 : 1;
-					char null1 : 1;
-					char null2 : 1;
-					char null3 : 1;
+					char null : 4;
 					char Carry : 1;
 					char HCarry : 1;
 					char Subtract : 1;
@@ -93,13 +90,6 @@ struct CPU_struct
 	unsigned short PC;
 };
 
-struct Instruction_struct 
-{
-	void(*Instruction)(void *value1, void* value2);
-	void *value1;
-	void *value2;
-};
-
 //global variables
 extern struct CPU_struct* CPU_ptr;
 
@@ -113,7 +103,4 @@ void CPU_dispose(void);
 //fetch the next instruction
 char Read_PC(void);
 
-void _8bitADDliteral(void *value1, void *value2);
-
-void _16bitADDliteral(void *value1, void *value2);
 #endif // !CPU
