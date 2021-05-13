@@ -1,4 +1,7 @@
-#include "stdafx.h"
+//local includesk
+#include "Tools.h"
+#include "CPU.h"
+#include "RAM.h"
 
 //prints an 8 bit value in binary
 void PrintBinary(char value)
@@ -29,30 +32,31 @@ void PrintHex16bit(short value)
 }
 
 //dumps the values in the CPU registers
-void DumpCPU() 
+void DumpCPU(CPU* CPU_ptr) 
 {
 	printf("A: ");
-	PrintHex8bit(*REG_A);
+	PrintHex8bit(CPU_ptr->A);
 	printf("F: ");
-	PrintHex8bit(*REG_F);
+	PrintHex8bit(CPU_ptr->F);
 	printf("\nB: ");
-	PrintHex8bit(*REG_B);
+	PrintHex8bit(CPU_ptr->B);
 	printf("C: ");
-	PrintHex8bit(*REG_C);
+	PrintHex8bit(CPU_ptr->C);
 	printf("\nD: ");
-	PrintHex8bit(*REG_D);
+	PrintHex8bit(CPU_ptr->D);
 	printf("E: ");
-	PrintHex8bit(*REG_E);
+	PrintHex8bit(CPU_ptr->E);
 	printf("\nH: ");
-	PrintHex8bit(*REG_H);
+	PrintHex8bit(CPU_ptr->H);
 	printf("L: ");
-	PrintHex8bit(*REG_L);
+	PrintHex8bit(CPU_ptr->L);
 	printf("\nSP: ");
-	PrintHex16bit(*REG_SP);
+	PrintHex16bit(CPU_ptr->SP);
 	printf("\nPC: ");
-	PrintHex16bit(*REG_PC);
+	PrintHex16bit(CPU_ptr->PC);
 	printf("\nFlags:\tZNHCxxxx\n\t");
-	PrintBinary(*REG_F);
+	PrintBinary(CPU_ptr->F);
+	printf("\nClyle: %lu", CPU_ptr->CycleNumber);
 	printf("\n\n");
 }
 

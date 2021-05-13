@@ -1,32 +1,126 @@
 #ifndef _Opcodes_h
 #define _Opcodes_h
 
-//structure for the opcodes
-struct Instruction_struct 
+#include "CPU.h"
+
+//enums
+typedef enum Opcode_Parameters
 {
-	void(*Instruction)(void *value1, void* value2);
-	void *value1;
-	void *value2;
-};
+	NONE = 0,
+	//Registers
+	REG_A = 1,
+	REG_B,
+	REG_C,
+	REG_D,
+	REG_E,
+	REG_F,
+	REG_H,
+	REG_L,
+	//Combined Registers
+	REG_AF,
+	REG_BC,
+	REG_DE,
+	REG_HL,
+	REG_SP,
+	REG_PC,
+	//Immediate data
+	IMMEDIATE_8BIT,
+	IMMEDIATE_16BIT,
+	//Immediate address
+	ADDRESS_8BIT,	//added to 0xFF00
+	ADDRESS_16BIT,
+	RELATIVE_STACK_8BIT,	//added to SP
+	//Register from Register
+	RELATIVE_REG_C,
+	ADDRESS_REG_BC,
+	ADDRESS_REG_DE,
+	ADDRESS_REG_HL,
+	//Load increases
+	ADDRESS_REG_HLI,
+	ADDRESS_REG_HLD,
+	//Reset Vectors
+	RESET_0,
+	RESET_1,
+	RESET_2,
+	RESET_3,
+	RESET_4,
+	RESET_5,
+	RESET_6,
+	RESET_7
+}Opcode_Parameter;
 
-//generate a pointer to an array of all the regular opcodes
-//struct Instruction_struct* Normal_Opcodes_init(void);
+//structure for the opcodes
+typedef struct Instruction_struct 
+{
+	void(*Instruction)(void *value1, void* value2, CPU* CPU_ptr);
+	Opcode_Parameter param1;
+	Opcode_Parameter param2;
+}Instruction;
 
-//generate a pointer to an array of all the CB prefixed opcodes
-//struct Instruction_struct* CB_Opcodes_init(void);
-
-//free a list of opcodes
-//void Opcodes_Dispose(struct Instruction_struct *Opcodes);
-
-
-//returns the instruction of the opcodes
-struct Instruction_struct get_NormalOpcode(char instruction);
+//Helper functions
+void* getDataFromParameter(CPU* CPU_ptr, Opcode_Parameter param);
+//Adds a couple of cycles to the cycle counter
+void addCylceCount(CPU* CPU_ptr, int cycles);
 
 //functions for normal opcodes
-
-void _8bitADDliteral(void *value1, void *value2);
-
-void _16bitADDliteral(void *value1, void *value2);
+void OP_ADC(void *value1, void *value2, CPU* CPU_ptr);
+void OP_ADD16(void *value1, void *value2, CPU* CPU_ptr);
+void OP_ADD8(void *value1, void *value2, CPU* CPU_ptr);
+void OP_AND(void *value1, void *value2, CPU* CPU_ptr);
+void OP_CALL(void *value1, void *value2, CPU* CPU_ptr);
+void OP_CALL_C(void *value1, void *value2, CPU* CPU_ptr);
+void OP_CALL_NC(void *value1, void *value2, CPU* CPU_ptr);
+void OP_CALL_NZ(void *value1, void *value2, CPU* CPU_ptr);
+void OP_CALL_Z(void *value1, void *value2, CPU* CPU_ptr);
+void OP_CBpref(void *value1, void *value2, CPU* CPU_ptr);
+void OP_CCF(void *value1, void *value2, CPU* CPU_ptr);
+void OP_CP(void *value1, void *value2, CPU* CPU_ptr);
+void OP_CPL(void *value1, void *value2, CPU* CPU_ptr);
+void OP_DAA(void *value1, void *value2, CPU* CPU_ptr);
+void OP_DEC16(void *value1, void *value2, CPU* CPU_ptr);
+void OP_DEC8(void *value1, void *value2, CPU* CPU_ptr);
+void OP_DI(void *value1, void *value2, CPU* CPU_ptr);
+void OP_EI(void *value1, void *value2, CPU* CPU_ptr);
+void OP_ERROR(void *value1, void *value2, CPU* CPU_ptr);
+void OP_HALT(void *value1, void *value2, CPU* CPU_ptr);
+void OP_INC16(void *value1, void *value2, CPU* CPU_ptr);
+void OP_INC8(void *value1, void *value2, CPU* CPU_ptr);
+void OP_JP(void *value1, void *value2, CPU* CPU_ptr);
+void OP_JP_C(void *value1, void *value2, CPU* CPU_ptr);
+void OP_JP_NC(void *value1, void *value2, CPU* CPU_ptr);
+void OP_JP_NZ(void *value1, void *value2, CPU* CPU_ptr);
+void OP_JP_Z(void *value1, void *value2, CPU* CPU_ptr);
+void OP_JR(void *value1, void *value2, CPU* CPU_ptr);
+void OP_JR_C(void *value1, void *value2, CPU* CPU_ptr);
+void OP_JR_NC(void *value1, void *value2, CPU* CPU_ptr);
+void OP_JR_NZ(void *value1, void *value2, CPU* CPU_ptr);
+void OP_JR_Z(void *value1, void *value2, CPU* CPU_ptr);
+void OP_LD16(void *value1, void *value2, CPU* CPU_ptr);
+void OP_LD8(void *value1, void *value2, CPU* CPU_ptr);
+void OP_LDD(void *value1, void *value2, CPU* CPU_ptr);
+void OP_LDH(void *value1, void *value2, CPU* CPU_ptr);
+void OP_LDHL(void *value1, void *value2, CPU* CPU_ptr);
+void OP_LDI(void *value1, void *value2, CPU* CPU_ptr);
+void OP_NOP(void *value1, void *value2, CPU* CPU_ptr);
+void OP_OR(void *value1, void *value2, CPU* CPU_ptr);
+void OP_POP(void *value1, void *value2, CPU* CPU_ptr);
+void OP_PUSH(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RET(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RETI(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RET_C(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RET_NC(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RET_NZ(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RET_Z(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RLA(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RLCA(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RRA(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RRCA(void *value1, void *value2, CPU* CPU_ptr);
+void OP_RST(void *value1, void *value2, CPU* CPU_ptr);
+void OP_SBC(void *value1, void *value2, CPU* CPU_ptr);
+void OP_SCF(void *value1, void *value2, CPU* CPU_ptr);
+void OP_STOP(void *value1, void *value2, CPU* CPU_ptr);
+void OP_SUB(void *value1, void *value2, CPU* CPU_ptr);
+void OP_XOR(void *value1, void *value2, CPU* CPU_ptr);
 
 
 //functions for CB prefixed opcodes

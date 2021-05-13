@@ -10,12 +10,12 @@ Curlies       = False
 Numbers       = False
 
 #replace these letters with the propper values later
-r = ["B", "C", "D", "E", "H", "L", "(HL)", "A"]
-rp = ["BC", "DE", "HL", "SP"]
-rp2 = ["BC", "DE", "HL", "AF"]
-cc = ["NZ", "Z", "NC", "C", "PO", "PE", "P", "M"]
-alu = ["_ADD8", "_ADC", "_SUB", "_SBC", "_AND", "_XOR", "_OR", "_CP"]
-rot = ["_RLC", "_RRC", "_RL", "_RR", "_SLA", "_SRA", "_SLL", "_SRL"]
+r = ["REG_B", "REG_C", "REG_D", "REG_E", "REG_H", "REG_L", "ADDRESS_REG_HL", "REG_A"]
+rp = ["REG_BC", "REG_DE", "REG_HL", "REG_SP"]
+rp2 = ["REG_BC", "REG_DE", "REG_HL", "REG_AF"]
+cc = ["NZ", "Z", "NC", "C", "_err", "_err", "_err", "_err"]
+alu = ["OP_ADD8", "OP_ADC", "OP_SUB", "OP_SBC", "OP_AND", "OP_XOR", "OP_OR", "OP_CP"]
+rot = ["OP_RLC", "OP_RRC", "OP_RL", "OP_RR", "OP_SLA", "OP_SRA", "OP_SLL", "OP_SRL"]
 
 def main():
     #user code here
@@ -108,153 +108,153 @@ def PrintNoPrefix( _opcode ):
     if x == 0:
         if z == 0:
             if y == 0:
-                print("_NOP, NULL, NULL", end="")
+                print("OP_NOP, NONE, NONE", end="")
             elif y == 1:
-                print("_LD16, (a16), SP", end="") #load SP into a16
+                print("OP_LD16, ADDRESS_16BIT, REG_SP", end="") #load SP into a16
             elif y == 2:
-                print("_STOP, NULL, NULL", end="")
+                print("OP_STOP, NONE, NONE", end="")
             elif y == 3:
-                print("_JR, r8, NULL", end="") #jump r8 ahead
+                print("OP_JR, RELATIVE_STACK_8BIT, NONE", end="") #jump r8 ahead
             else:
-                print("_JR, %s, r8"% cc[y-4], end="") #jump with condition, might need to get rolled out, or filtered (like put the condition in the second spot, so we can check it depending on that)
+                print("OP_JR_%s, RELATIVE_STACK_8BIT, NONE"% cc[y-4], end="") #jump with condition, might need to get rolled out, or filtered (like put the condition in the second spot, so we can check it depending on that)
         elif z ==1:
             if q == 0:
-                print("_LD16, %s, d16"% rp[p], end="") #load d16 into rp[p]
+                print("OP_LD16, %s, IMMEDIATE_16BIT"% rp[p], end="") #load d16 into rp[p]
             else:
-                print("_ADD16, HL, %s"% rp[p], end="")
+                print("OP_ADD16, REG_HL, %s"% rp[p], end="")
         elif z ==2:
             if q == 0:
                 if p == 0:
-                    print("_LD8, (BC), A", end="")
+                    print("OP_LD8, ADDRESS_REG_BC, REG_A", end="")
                 elif p == 1:
-                    print("_LD8, (DE), A", end="")
+                    print("OP_LD8, ADDRESS_REG_DE, REG_A", end="")
                 elif p == 2:
-                    print("_LDI, (HL), A", end="")
+                    print("OP_LD8, ADDRESS_REG_HLI, REG_A", end="")
                 elif p == 3:
-                    print("_LDD, (HL), A", end="")
+                    print("OP_LD8, ADDRESS_REG_HLD, REG_A", end="")
             else:
                 if p == 0:
-                    print("_LD8, A, (BC)", end="")
+                    print("OP_LD8, REG_A, ADDRESS_REG_BC", end="")
                 elif p == 1:
-                    print("_LD8, A, (DE)", end="")
+                    print("OP_LD8, REG_A, ADDRESS_REG_DE", end="")
                 elif p == 2:
-                    print("_LDI, A, (HL)", end="")
+                    print("OP_LD8, REG_A, ADDRESS_REG_HLI", end="")
                 elif p == 3:
-                    print("_LDD, A, (HL)", end="")
+                    print("OP_LD8, REG_A, ADDRESS_REG_HLD", end="")
         elif z ==3:
             if q == 0:
-                print("_INC16, %s, NULL"% rp[p], end="")
+                print("OP_INC16, %s, NONE"% rp[p], end="")
             else:
-                print("_DEC16, %s, NULL"% rp[p], end="")
+                print("OP_DEC16, %s, NONE"% rp[p], end="")
         elif z ==4:
-            print("_INC8, %s, NULL"% r[y], end="")
+            print("OP_INC8, %s, NONE"% r[y], end="")
         elif z ==5:
-            print("_DEC8, %s, NULL"% r[y], end="")
+            print("OP_DEC8, %s, NONE"% r[y], end="")
         elif z ==6:
-            print("_LD8, %s, d8"% r[y], end="")
+            print("OP_LD8, %s, IMMEDIATE_8BIT"% r[y], end="")
         elif z ==7:
             if y == 0:
-                print("_RLCA, NULL, NULL", end="")
+                print("OP_RLCA, NONE, NONE", end="")
             elif y == 1:
-                print("_RRCA, NULL, NULL", end="")
+                print("OP_RRCA, NONE, NONE", end="")
             elif y == 2:
-                print("_RLA, NULL, NULL", end="")
+                print("OP_RLA, NONE, NONE", end="")
             elif y == 3:
-                print("_RRA, NULL, NULL", end="")
+                print("OP_RRA, NONE, NONE", end="")
             elif y == 4:
-                print("_DAA, NULL, NULL", end="")
+                print("OP_DAA, NONE, NONE", end="")
             elif y == 5:
-                print("_CPL, NULL, NULL", end="")
+                print("OP_CPL, NONE, NONE", end="")
             elif y == 6:
-                print("_SCF, NULL, NULL", end="")
+                print("OP_SCF, NONE, NONE", end="")
             elif y == 7:
-                print("_CCF, NULL, NULL", end="")
+                print("OP_CCF, NONE, NONE", end="")
             
     elif x == 1:
         if z == 6 and y == 6:
-            print("_HALT, NULL, NULL", end="")
+            print("OP_HALT, NONE, NONE", end="")
         else:
-            print("_LD8, %s, %s"% (r[y], r[z]), end="")
+            print("OP_LD8, %s, %s"% (r[y], r[z]), end="")
     elif x == 2:
-        print("%s, %s, NULL"% (alu[y], r[z]), end="")
+        print("%s, REG_A, %s"% (alu[y], r[z]), end="")
     elif x == 3:
         if z == 0:
             if q == 0:
                 if p == 0:
-                    print("_RET, NZ, NULL", end="")
+                    print("OP_RET_NZ, NONE, NONE", end="")
                 elif p == 1:
-                    print("_RET, NC, NULL", end="")
+                    print("OP_RET_NC, NONE, NONE", end="")
                 elif p == 2:
-                    print("_LDH, (a8), A", end="")  #NULL is (a8)
+                    print("OP_LDH, ADDRESS_8BIT, REG_A", end="")  #NONE is (a8)
                 elif p == 3:
-                    print("_LDH, A, (a8)", end="") #NULL is (a8)
+                    print("OP_LDH, REG_A, ADDRESS_8BIT", end="") #NONE is (a8)
             else:
                 if p == 0:
-                    print("_RET, Z, NULL", end="")
+                    print("OP_RET_Z, NONE, NONE", end="")
                 elif p == 1:
-                    print("_RET, C, NULL", end="")
+                    print("OP_RET_C, NONE, NONE", end="")
                 elif p == 2:
-                    print("_ADD16, SP, r8", end="")
+                    print("OP_ADD16, REG_SP, RELATIVE_STACK_8BIT", end="")
                 elif p == 3:
-                    print("_LDHL, SP, r8", end="") #NULL is SP+r8, look into this
+                    print("OP_LD16, REG_SP, RELATIVE_STACK_8BIT", end="") #NONE is SP+r8, look into this
         elif z ==1:
             if q == 0:
-                print("_POP, %s ,NULL"%(rp2[p]), end="")
+                print("OP_POP, %s ,NONE"%(rp2[p]), end="")
             else:
                 if p == 0:
-                    print("_RET, NULL, NULL", end="")
+                    print("OP_RET, NONE, NONE", end="")
                 elif p == 1:
-                    print("_RETI, NULL, NULL", end="")
+                    print("OP_RETI, NONE, NONE", end="")
                 elif p == 2:
-                    print("_JP, (HL), NULL", end="")
+                    print("OP_JP, ADDRESS_REG_HL, NONE", end="")
                 elif p == 3:
-                    print("_LD16, SP, HL", end="")
+                    print("OP_LD16, REG_SP, REG_HL", end="")
         elif z ==2:
             if q == 0:
                 if p == 0:
-                    print("_JP, NZ, a16", end="")
+                    print("OP_JP_NZ, ADDRESS_16BIT, NONE", end="")
                 elif p == 1:
-                    print("_JP, NC, a16", end="")
+                    print("OP_JP_NC, ADDRESS_16BIT, NONE", end="")
                 elif p == 2:
-                    print("_LD8, (C), A", end="")
+                    print("OP_LD8, RELATIVE_REG_C, REG_A", end="")
                 elif p == 3:
-                    print("_LD8, A, (C)", end="")
+                    print("OP_LD8, REG_A, RELATIVE_REG_C", end="")
             else:
                 if p == 0:
-                    print("_JP, Z, a16", end="") #NULL = a16
+                    print("OP_JP_Z, ADDRESS_16BIT, NONE", end="") #NONE = a16
                 elif p == 1:
-                    print("_JP, C, a16", end="") #NULL = a16
+                    print("OP_JP_C, ADDRESS_16BIT, NONE", end="") #NONE = a16
                 elif p == 2:
-                    print("_LD8, (a16), A", end="") #NULL = a16
+                    print("OP_LD8, ADDRESS_16BIT, REG_A", end="") #NONE = (a16)
                 elif p == 3:
-                    print("_LD8, A, (a16)", end="") #NULL = a16
+                    print("OP_LD8, REG_A, ADDRESS_16BIT", end="") #NONE = (a16)
         elif z ==3:
             if y == 0:
-                print("_JP, a16, NULL", end="")    #first NULL = a16
+                print("OP_JP, ADDRESS_16BIT, NONE", end="")    #first NONE = a16
             elif y == 1:
-                print("_CBpref, NULL, NULL", end="")    #CB Prefix
+                print("OP_CBpref, NONE, NONE", end="")    #CB Prefix
             elif y == 6:
-                print("_DI, NULL, NULL", end="")
+                print("OP_DI, NONE, NONE", end="")
             elif y == 7:
-                print("_EI, NULL, NULL", end="")
+                print("OP_EI, NONE, NONE", end="")
             else:
-                print("_ERROR, NULL, NULL", end="") #something went wrong if you get here
+                print("OP_ERROR, NONE, NONE", end="") #something went wrong if you get here
         elif z ==4:
             if y < 4:
-                print("_CALL, %s, NULL"%(cc[y]), end="")
+                print("OP_CALL_%s, NONE, NONE"%(cc[y]), end="")
             else:
-                print("_ERROR, NULL, NULL", end="")
+                print("OP_ERROR, NONE, NONE", end="")
         elif z ==5:
             if q == 0:
-                print("_PUSH, %s, NULL"%(rp2[p]), end="")
+                print("OP_PUSH, %s, NONE"%(rp2[p]), end="")
             elif p == 0:
-                print("_CALL, a16, NULL", end="") #NULL = a16s
+                print("OP_CALL, ADDRESS_16BIT, NONE", end="") #NONE = a16s
             else:
-                print("_ERROR, NULL, NULL", end="") 
+                print("OP_ERROR, NONE, NONE", end="") 
         elif z ==6:
-            print("%s, d8, NULL"%(alu[y]), end="")
+            print("%s, IMMEDIATE_8BIT, NONE"%(alu[y]), end="")
         elif z ==7:
-            print("_RST, %s, NULL"%(y * 8), end="") #the numarical value is an interger, not a pointer. look into this.
+            print("OP_RST, RESET_%s, NONE"%(y), end="") #the numarical value is an interger, not a pointer. look into this.
 
     #==============
     # CB Prefixed Opcodes
@@ -269,12 +269,12 @@ def printCBprefixed(_opcode):
 #real wonkey code this right here
 
     if x == 0:
-        print("%s, %s, NULL"%(rot[y], r[z]), end="")
+        print("%s, %s, NONE"%(rot[y], r[z]), end="")
     elif x ==1:
-        print("_BIT, %s, %s"%(y, r[z]), end="")
+        print("OP_BIT, %s, %s"%(y, r[z]), end="")
     elif x ==2:
-        print("_RES, %s, %s"%(y, r[z]), end="")
+        print("OP_RES, %s, %s"%(y, r[z]), end="")
     elif x ==3:
-        print("_SET, %s, %s"%(y, r[z]), end="")
+        print("OP_SET, %s, %s"%(y, r[z]), end="")
 
 main()

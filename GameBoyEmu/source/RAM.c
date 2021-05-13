@@ -1,22 +1,22 @@
+#include "RAM.h"
 
-#include "stdafx.h"
-
-char* RAM_ptr = NULL;
+#include <stdlib.h>
+#include <string.h>
 
 //initialize RAM
-void RAM_init(void) 
+RAM* RAM_init(void) 
 {
 	/*	the gameboy cpu can adress memory locations from 0x0000 to 0xffff
 		different parts of memory are linked to different parts of the hardware
 		but to the cpu its all the same.	*/ 
-	if(RAM_ptr == NULL)
-	{
-		RAM_ptr = (char *)malloc(0xffff);
-	}
+	RAM* newRAM = (RAM*)malloc(0xffff);
+	memset(newRAM, 0, 0xffff);
+
+	return newRAM;
 }
 
 //free the allocated memory stack
-void RAM_dispose(void) 
+void RAM_dispose(RAM* RAM_ptr) 
 {
 	//check if the RAM_ptr exists, and free it
 	if (NULL != RAM_ptr)

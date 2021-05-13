@@ -1,44 +1,35 @@
 #ifndef _CPU_h
 #define _CPU_h
 
-//Defines
+//Includes
 #include <stdlib.h>
-
-//Defines
-//standard registers
-#define REG_A (&CPU_ptr->A)
-#define REG_F (&CPU_ptr->F)
-#define REG_B (&CPU_ptr->B)
-#define REG_C (&CPU_ptr->C)
-#define REG_D (&CPU_ptr->D)
-#define REG_E (&CPU_ptr->E)
-#define REG_H (&CPU_ptr->H)
-#define REG_L (&CPU_ptr->L)
-
-//combined registers
-#define REG_AF (&CPU_ptr->AF)
-#define REG_BC (&CPU_ptr->BC)
-#define REG_DE (&CPU_ptr->DE)
-#define REG_HL (&CPU_ptr->HL)
-#define REG_SP (&CPU_ptr->SP)
-#define REG_PC (&CPU_ptr->PC)
+#include "RAM.h"
 
 //F register flags
 /*	|   7   |  6   |   5    |   4    |3|2|1|0|
 	|Zero(Z)|Sub(N)|HalfC(H)|Carry(C)|0|0|0|0|
 */
-#define FLAG_Z (CPU_ptr->Zero)
-#define FLAG_N (CPU_ptr->Subtract)
-#define FLAG_H (CPU_ptr->HCarry)
-#define FLAG_C (CPU_ptr->Carry)
+//#define FLAG_Z (CPU_ptr->Zero)
+//#define FLAG_N (CPU_ptr->Subtract)
+//#define FLAG_H (CPU_ptr->HCarry)
+//#define FLAG_C (CPU_ptr->Carry)
 
 //structs
-struct CPU_struct 
+typedef struct CPU_flag_registers
+{
+	char null : 4;
+	char Carry : 1;
+	char HCarry : 1;
+	char Subtract : 1;
+	char Zero : 1;
+}CPU_flags;
+
+typedef struct CPU_struct 
 {
 	union 
 	{
 		//combined register
-		short AF;
+		unsigned short AF;
 		//induvidual registers
 		struct 
 		{
@@ -46,20 +37,14 @@ struct CPU_struct
 			{
 				unsigned char F;
 
-				struct {
-					char null : 4;
-					char Carry : 1;
-					char HCarry : 1;
-					char Subtract : 1;
-					char Zero : 1;
-				};
+				CPU_flags FLAGS;
 			};
 			unsigned char A;
 		};
 	};
 	union 
 	{
-		short BC;
+		unsigned short BC;
 		struct 
 		{
 			unsigned char C;
@@ -88,19 +73,23 @@ struct CPU_struct
 	};
 	unsigned short SP;
 	unsigned short PC;
-};
-
-//global variables
-extern struct CPU_struct* CPU_ptr;
+	unsigned long CycleNumber;
+	//Refference to the start of ram, for easier access
+	RAM* RAM_ref;
+}CPU;
 
 //function prototypes
 //initiate CPU
-void CPU_init(void);
+CPU* CPU_init(RAM* RAM_ptr);
 
 //free CPU
-void CPU_dispose(void);
+void CPU_dispose(CPU* CPU_ptr);
 
 //fetch the next instruction
 char Read_PC(void);
+
+//loads from the pc
+unsigned char* Read_PC8(CPU* CPU_ptr);
+unsigned short* Read_PC16(CPU* CPU_ptr);
 
 #endif // !CPU

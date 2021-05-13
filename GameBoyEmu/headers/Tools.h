@@ -1,7 +1,11 @@
 #ifndef _Tools_h
 #define _Tools_h
+//Include Tools.h if you want to use debug functions in your file
+
 //includes
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 //defines
 

@@ -1,29 +1,37 @@
-#include "stdafx.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-struct CPU_struct* CPU_ptr = NULL;
+#include "CPU.h"
+#include "RAM.h"
 
 //initiate CPU
-void CPU_init(void) 
+CPU* CPU_init(RAM* RAM_ptr) 
 {
-	
 	//check if the CPU is already inited
-	if(CPU_ptr != NULL)
+	if(RAM_ptr == NULL)
 	{
-		return;
+		printf("CPU_init: Please Initialize Ram before the CPU\n");
+		return NULL;
 	}
 
 	//allocate space for the cpu registers
-	CPU_ptr = (struct CPU_struct *)malloc(sizeof(struct CPU_struct));
+	CPU* newCPU = (CPU*)malloc(sizeof(CPU));
 
 	//set all registers to value 0;
-	memset(CPU_ptr, 0, sizeof(struct CPU_struct));
+	memset(newCPU, 0, sizeof(CPU));
 
-	//set the stack pointer to location 0x0100
-	*REG_PC = 0x0100;
+	//copy the ram refference
+	newCPU->RAM_ref = RAM_ptr;
+	//set the Program Counter to location 0x0100
+	newCPU->PC = 0x0100;
+	newCPU->SP = 0xFFFE;
+
+	return newCPU;
 }
 
 //free the cpu registers
-void CPU_dispose(void) 
+void CPU_dispose(CPU* CPU_ptr) 
 {
 	//check if the CPU_ptr exists, and free it
 	if (NULL != CPU_ptr) 
@@ -34,7 +42,15 @@ void CPU_dispose(void)
 }
 
 //read the value in memory at the Program Counter, increase it by 1 and return the read value.
-char Read_PC(void) 
+unsigned char* Read_PC8(CPU* CPU_ptr) 
 {
-	return *(RAM_START + (*REG_PC)++);
+	return (CPU_ptr->RAM_ref + (CPU_ptr->PC)++);
+}
+
+//read the next two bytes, increase the pc by 2
+unsigned short* Read_PC16(CPU* CPU_ptr)
+{
+	unsigned short* ramLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->PC);
+	CPU_ptr->PC += 2;
+	return ramLocation;
 }
