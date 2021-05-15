@@ -4,6 +4,23 @@
 
 #include "OpcodeLookupTable.h"
 
+void performNextOpcode(CPU* CPU_ptr)
+{
+	unsigned char opcode = *Read_PC8(CPU_ptr);
+	performOpcode(CPU_ptr, opcode);
+}
+
+void performOpcode(CPU* CPU_ptr, unsigned char opcode)
+{
+	Instruction instr = getNormalOpcode(opcode);
+
+	void* param1 = getDataFromParameter(CPU_ptr, instr.param1);
+	void* param2 = getDataFromParameter(CPU_ptr, instr.param2);
+
+	instr.Instruction(param1, param2, CPU_ptr);
+}
+
+
 void* getDataFromParameter(CPU* CPU_ptr, Opcode_Parameter param)
 {
 	switch (param)
@@ -42,45 +59,49 @@ void* getDataFromParameter(CPU* CPU_ptr, Opcode_Parameter param)
 		return &(CPU_ptr->PC);
 	//Immediate data
 	case IMMEDIATE_8BIT:
-		addCylceCount(CPU_ptr, 1);
+		addCycleCount(CPU_ptr, 1);
 		return Read_PC8(CPU_ptr);
 	case IMMEDIATE_16BIT:
-		addCylceCount(CPU_ptr, 2);
+		addCycleCount(CPU_ptr, 1);
 		return Read_PC16(CPU_ptr);
 	//Immediate address
 	case ADDRESS_8BIT:	//added to 0xFF00
 	{
-		addCylceCount(CPU_ptr, 2);
+		addCycleCount(CPU_ptr, 2);
 		unsigned short address = 0xFF00 + *Read_PC8(CPU_ptr);
 		return CPU_ptr->RAM_ref + address;
 	}
 	case ADDRESS_16BIT:
 	{
 		//LSB first, i don't know if this works right, right now...
-		addCylceCount(CPU_ptr, 3);
+		addCycleCount(CPU_ptr, 3);
 		unsigned short address = *Read_PC16(CPU_ptr);
 		return CPU_ptr->RAM_ref + address;
 	}
-	case RELATIVE_STACK_8BIT:	//added to SP
+	case RELATIVE_8BIT:	//signed value added to PC, but i can't add the value to the pointer directly...
+	{
+		addCycleCount(CPU_ptr, 2);
+		return Read_PC8(CPU_ptr);
+	}
 	//Register from Register
 	case RELATIVE_REG_C:
-		addCylceCount(CPU_ptr, 1);
+		addCycleCount(CPU_ptr, 1);
 		return CPU_ptr->RAM_ref + 0xFF00 + CPU_ptr->C;
 	case ADDRESS_REG_BC:
-		addCylceCount(CPU_ptr, 1);
+		addCycleCount(CPU_ptr, 1);
 		return CPU_ptr->RAM_ref + CPU_ptr->BC;
 	case ADDRESS_REG_DE:
-		addCylceCount(CPU_ptr, 1);
+		addCycleCount(CPU_ptr, 1);
 		return CPU_ptr->RAM_ref + CPU_ptr->DE;
 	case ADDRESS_REG_HL:
-		addCylceCount(CPU_ptr, 1);
+		addCycleCount(CPU_ptr, 1);
 		return CPU_ptr->RAM_ref + CPU_ptr->HL;
 	//Load increases
 	case ADDRESS_REG_HLI:
-		addCylceCount(CPU_ptr, 1);
+		addCycleCount(CPU_ptr, 1);
 		return CPU_ptr->RAM_ref + CPU_ptr->HL++;
 	case ADDRESS_REG_HLD:
-		addCylceCount(CPU_ptr, 1);
+		addCycleCount(CPU_ptr, 1);
 		return CPU_ptr->RAM_ref + CPU_ptr->HL--;
 	//Reset Vectors
 	case RESET_0:
@@ -104,35 +125,55 @@ void* getDataFromParameter(CPU* CPU_ptr, Opcode_Parameter param)
 	};
 }
 
-void addCylceCount(CPU* CPU_ptr, int cycles)
+void addCycleCount(CPU* CPU_ptr, int cycles)
 {
 	CPU_ptr->CycleNumber += cycles;
 }
 
 //functions for normal opcodes
 //cpu instructions
-void OP_ADC(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_ADD16(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-
-//Add Value2 to A
-void OP_ADD8(void *value1, void *value2, CPU* CPU_ptr){ 
+//Add Value2 to Value1 (Always A) and add Carry;
+void OP_ADC(void *value1, void *value2, CPU* CPU_ptr)
+{
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
-	CPU_flags* flags = &(CPU_ptr->FLAGS);
+	unsigned char carry = CPU_ptr->FLAGS.Carry?1:0;	//a set carry comes out as 255 for some reason
 
-	unsigned short result = *val1 + *val2;
-
-	flags->Zero &= result == 0;
-	flags->Subtract = 0;
-	flags->HCarry &= result | 0x0010;
-	flags->Carry &= result | 0x0100;
+	unsigned short result = *val1 + (*val2 + carry);
+	//check if the first byte of the result is zero
+	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	//check if the low nibbles added together cause an overflow to bit 4
+	CPU_ptr->FLAGS.HCarry = (((*val1 & 0xf) + ((*val2 + carry) & 0xf)) & 0x10)? 1:0;
+	//check if the result rolled over into the second byte
+	CPU_ptr->FLAGS.Carry = (result & 0x0100)? 1:0;
 
 	*val1 = result;
 
-	printf("Result written\n");
-	fflush(stdout);
+	addCycleCount(CPU_ptr, 1);
+}
 
-	addCylceCount(CPU_ptr, 1);
+//Add Value2 to Value1
+void OP_ADD16(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Add Value2 to Value1 (Always A)
+void OP_ADD8(void *value1, void *value2, CPU* CPU_ptr){ 
+	unsigned char* val1 = (unsigned char*)value1;
+	unsigned char* val2 = (unsigned char*)value2;
+
+	unsigned short result = *val1 + *val2;
+
+	//check if the first byte of the result is zero
+	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	//check if the low nibbles added together cause an overflow to bit 4
+	CPU_ptr->FLAGS.HCarry = (((*val1 & 0xf) + (*val2 & 0xf)) & 0x10)? 1:0;
+	//check if the result rolled over into the second byte
+	CPU_ptr->FLAGS.Carry = (result & 0x0100)? 1:0;
+
+	*val1 = result;
+
+	addCycleCount(CPU_ptr, 1);
 }
 
 void OP_AND(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
@@ -164,9 +205,19 @@ void OP_JR_C(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ 
 void OP_JR_NC(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_JR_NZ(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_JR_Z(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_LD16(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 
-//Loads Value2, into Value1
+//Load Value2, into Value1
+void OP_LD16(void *value1, void *value2, CPU* CPU_ptr)
+{ 
+	unsigned short* val1 = (unsigned short*)value1;
+	unsigned short* val2 = (unsigned short*)value2;
+
+	*val1 = *val2;
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//Load Value2, into Value1
 void OP_LD8(void *value1, void *value2, CPU* CPU_ptr)
 {
 	unsigned char* val1 = (unsigned char*)value1;
@@ -174,18 +225,60 @@ void OP_LD8(void *value1, void *value2, CPU* CPU_ptr)
 	
 	*val1 = *val2;
 
-	addCylceCount(CPU_ptr, 1);
+	addCycleCount(CPU_ptr, 1);
 }
-void OP_LDH(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_LDHL(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 
+//Load SP + r8 into HL
+void OP_LDHL(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned short* HL = (unsigned short*)value1;
+	unsigned short* SP = (unsigned short*)value2;
+
+	signed char relativeValue = *(signed char*)Read_PC8(CPU_ptr);
+	unsigned short result = *SP + relativeValue;
+
+	CPU_ptr->FLAGS.Zero = 0;
+	CPU_ptr->FLAGS.Subtract = 0;
+	//check if the low nibbles added together cause an overflow to bit 4
+	CPU_ptr->FLAGS.HCarry = (((*SP & 0xf) + (relativeValue & 0xf)) & 0x10)? 1:0;
+	//check if the low and high nibbles added together cause an overflow to bit 7
+	CPU_ptr->FLAGS.Carry = (((*SP & 0xff) + (relativeValue & 0xff)) & 0x100)? 1:0;
+
+	*HL = result;
+
+	addCycleCount(CPU_ptr, 3);
+}
+
+//No Operation
 void OP_NOP(void *value1, void *value2, CPU* CPU_ptr)
 { 
-	addCylceCount(CPU_ptr, 1);
+	addCycleCount(CPU_ptr, 1);
 }
 void OP_OR(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_POP(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_PUSH(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Pop two bytes off the stack into a register pair
+void OP_POP(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned short* Register = (unsigned short*)value1;
+
+	CPU_ptr->SP += 2;
+	unsigned short* StackLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->SP);
+	*Register = *StackLocation;
+
+	addCycleCount(CPU_ptr, 3);
+}
+
+//Push register pair nn onto the stack
+void OP_PUSH(void *value1, void *value2, CPU* CPU_ptr)
+{ 
+	unsigned short* Register = (unsigned short*)value1;
+
+	unsigned short* StackLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->SP);
+	*StackLocation = *Register;
+	CPU_ptr->SP -= 2;
+
+	addCycleCount(CPU_ptr, 4);
+}
 void OP_RET(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_RETI(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_RET_C(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
@@ -200,7 +293,27 @@ void OP_RST(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_SBC(void *value1, void *valuee2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_SCF(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_STOP(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_SUB(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Subtract value2 from value1 (Always A)
+void OP_SUB(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char* val1 = (unsigned char*)value1;
+	unsigned char* val2 = (unsigned char*)value2;
+
+	unsigned short result = *val1 - *val2;
+
+	//check if the first byte of the result is zero
+	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
+	CPU_ptr->FLAGS.Subtract = 1;
+	//check a carry took place from the second nibble to the first
+	CPU_ptr->FLAGS.HCarry = !((*val1 & 0x0f) < (*val2 & 0x0f));
+	//check if a carry took place into the second nibble
+	CPU_ptr->FLAGS.Carry = !(*val1 < *val2);
+
+	*val1 = result;
+
+	addCycleCount(CPU_ptr, 1);
+}
 void OP_XOR(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 
 

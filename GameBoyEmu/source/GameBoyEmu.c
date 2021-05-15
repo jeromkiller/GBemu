@@ -16,38 +16,14 @@ int main()
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
-	for(unsigned char i = 0; i < 20; i++)
-	{
-		GameboyRAM[0x0100 + i] = 0x20 + i;
-	}
-	
-	DumpCPU(GameboyCPU);
+	GameboyCPU->A = 0x40;
+	GameboyCPU->B = 0x50;
 
-	printf("chars\n");
-	for(unsigned char i = 0; i < 10; i++)
-	{
-		PrintHex16bit(*Read_PC16(GameboyCPU));
-		printf("\n");
-	}
-////////////////////
-	//print data in the cpu registers
-	DumpCPU(GameboyCPU);
+	printCPU(GameboyCPU);
 
-	printf("======Msb, lsb test======\n");
-	unsigned short twobyte = 4660;
-	unsigned short* twobyte_ptr = &twobyte;
-	unsigned char* onebyte_ptr = (unsigned char*)twobyte_ptr;
-	printf("msb?: %02x\n",*onebyte_ptr & 0xff);
-	printf("lsb?: %02x\n",*(onebyte_ptr + 1) & 0xff);
+	OP_SUB(&(GameboyCPU->A), &(GameboyCPU->B), GameboyCPU);
 
-	DumpCPU(GameboyCPU);
-
-	GameboyCPU->B = 0x20;
-	GameboyCPU->C = 0x21;
-
-	DumpCPU(GameboyCPU);
-
-	PrintHex16bit(GameboyCPU->BC);
+	printCPU(GameboyCPU);
 
 ///////////////////////////////////////////////////////////////////////
 

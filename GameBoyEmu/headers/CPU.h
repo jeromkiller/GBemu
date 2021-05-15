@@ -85,9 +85,6 @@ CPU* CPU_init(RAM* RAM_ptr);
 //free CPU
 void CPU_dispose(CPU* CPU_ptr);
 
-//fetch the next instruction
-char Read_PC(void);
-
 //loads from the pc
 unsigned char* Read_PC8(CPU* CPU_ptr);
 unsigned short* Read_PC16(CPU* CPU_ptr);

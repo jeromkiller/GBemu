@@ -29,6 +29,7 @@ typedef enum Opcode_Parameters
 	//Immediate address
 	ADDRESS_8BIT,	//added to 0xFF00
 	ADDRESS_16BIT,
+	RELATIVE_8BIT,	//signed char, added to PC
 	RELATIVE_STACK_8BIT,	//added to SP
 	//Register from Register
 	RELATIVE_REG_C,
@@ -58,9 +59,13 @@ typedef struct Instruction_struct
 }Instruction;
 
 //Helper functions
+void performNextOpcode(CPU* CPU_ptr);
+
+void performOpcode(CPU* CPU_ptr, unsigned char opcode);
+
 void* getDataFromParameter(CPU* CPU_ptr, Opcode_Parameter param);
 //Adds a couple of cycles to the cycle counter
-void addCylceCount(CPU* CPU_ptr, int cycles);
+void addCycleCount(CPU* CPU_ptr, int cycles);
 
 //functions for normal opcodes
 void OP_ADC(void *value1, void *value2, CPU* CPU_ptr);
@@ -97,10 +102,7 @@ void OP_JR_NZ(void *value1, void *value2, CPU* CPU_ptr);
 void OP_JR_Z(void *value1, void *value2, CPU* CPU_ptr);
 void OP_LD16(void *value1, void *value2, CPU* CPU_ptr);
 void OP_LD8(void *value1, void *value2, CPU* CPU_ptr);
-void OP_LDD(void *value1, void *value2, CPU* CPU_ptr);
-void OP_LDH(void *value1, void *value2, CPU* CPU_ptr);
 void OP_LDHL(void *value1, void *value2, CPU* CPU_ptr);
-void OP_LDI(void *value1, void *value2, CPU* CPU_ptr);
 void OP_NOP(void *value1, void *value2, CPU* CPU_ptr);
 void OP_OR(void *value1, void *value2, CPU* CPU_ptr);
 void OP_POP(void *value1, void *value2, CPU* CPU_ptr);

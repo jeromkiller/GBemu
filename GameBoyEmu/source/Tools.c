@@ -4,7 +4,7 @@
 #include "RAM.h"
 
 //prints an 8 bit value in binary
-void PrintBinary(char value)
+void printBinary(char value)
 {
 	unsigned char bit = 0x80;
 	for (char i = 0; i < 8; i++) {
@@ -19,43 +19,43 @@ void PrintBinary(char value)
 }
 
 //prints an 8 bit value in hex
-void PrintHex8bit(char value)
+void printHex8bit(char value)
 {
 	//print the hex value in with, with a mask because the value gets promoted to an int
 	printf("%02x\t", value & 0xff);
 }
 
-void PrintHex16bit(short value)
+void printHex16bit(short value)
 {
 	//print the hex value in with, with a mask because the value gets promoted to an int
 	printf("%04x\t", value & 0xffff);
 }
 
 //dumps the values in the CPU registers
-void DumpCPU(CPU* CPU_ptr) 
+void printCPU(CPU* CPU_ptr) 
 {
 	printf("A: ");
-	PrintHex8bit(CPU_ptr->A);
+	printHex8bit(CPU_ptr->A);
 	printf("F: ");
-	PrintHex8bit(CPU_ptr->F);
+	printHex8bit(CPU_ptr->F);
 	printf("\nB: ");
-	PrintHex8bit(CPU_ptr->B);
+	printHex8bit(CPU_ptr->B);
 	printf("C: ");
-	PrintHex8bit(CPU_ptr->C);
+	printHex8bit(CPU_ptr->C);
 	printf("\nD: ");
-	PrintHex8bit(CPU_ptr->D);
+	printHex8bit(CPU_ptr->D);
 	printf("E: ");
-	PrintHex8bit(CPU_ptr->E);
+	printHex8bit(CPU_ptr->E);
 	printf("\nH: ");
-	PrintHex8bit(CPU_ptr->H);
+	printHex8bit(CPU_ptr->H);
 	printf("L: ");
-	PrintHex8bit(CPU_ptr->L);
+	printHex8bit(CPU_ptr->L);
 	printf("\nSP: ");
-	PrintHex16bit(CPU_ptr->SP);
+	printHex16bit(CPU_ptr->SP);
 	printf("\nPC: ");
-	PrintHex16bit(CPU_ptr->PC);
+	printHex16bit(CPU_ptr->PC);
 	printf("\nFlags:\tZNHCxxxx\n\t");
-	PrintBinary(CPU_ptr->F);
+	printBinary(CPU_ptr->F);
 	printf("\nClyle: %lu", CPU_ptr->CycleNumber);
 	printf("\n\n");
 }
@@ -64,4 +64,24 @@ void DumpCPU(CPU* CPU_ptr)
 void test(void *value1, void *value2) 
 {
 	printf("print %02x, %02x\n", *(char*)value1 & 0xff, *(char*)value2 & 0xff);
+}
+
+//prints the last 10 entries of 
+void printStack(CPU* CPU_ptr)
+{
+	int location = CPU_ptr->SP + 20;
+	if(location >= 0xFFFE)
+	{
+		location = 0xFFFE;
+		printf("== stack top ==\n");
+	}
+
+	for(; location > CPU_ptr->SP; location -= 2)
+	{
+		printHex16bit(location);
+		printf("-> 0x");
+		printHex16bit(*(unsigned short*)(CPU_ptr->RAM_ref + location));
+		printf(";\n");
+	}
+	printf("== ========= ==\n\n");
 }

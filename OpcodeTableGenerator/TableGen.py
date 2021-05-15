@@ -114,9 +114,9 @@ def PrintNoPrefix( _opcode ):
             elif y == 2:
                 print("OP_STOP, NONE, NONE", end="")
             elif y == 3:
-                print("OP_JR, RELATIVE_STACK_8BIT, NONE", end="") #jump r8 ahead
+                print("OP_JR, RELATIVE_8BIT, NONE", end="") #jump r8 ahead
             else:
-                print("OP_JR_%s, RELATIVE_STACK_8BIT, NONE"% cc[y-4], end="") #jump with condition, might need to get rolled out, or filtered (like put the condition in the second spot, so we can check it depending on that)
+                print("OP_JR_%s, RELATIVE_8BIT, NONE"% cc[y-4], end="") #jump with condition, might need to get rolled out, or filtered (like put the condition in the second spot, so we can check it depending on that)
         elif z ==1:
             if q == 0:
                 print("OP_LD16, %s, IMMEDIATE_16BIT"% rp[p], end="") #load d16 into rp[p]
@@ -185,18 +185,18 @@ def PrintNoPrefix( _opcode ):
                 elif p == 1:
                     print("OP_RET_NC, NONE, NONE", end="")
                 elif p == 2:
-                    print("OP_LDH, ADDRESS_8BIT, REG_A", end="")  #NONE is (a8)
+                    print("OP_LD8, ADDRESS_8BIT, REG_A", end="")  #NONE is (a8)
                 elif p == 3:
-                    print("OP_LDH, REG_A, ADDRESS_8BIT", end="") #NONE is (a8)
+                    print("OP_LD8, REG_A, ADDRESS_8BIT", end="") #NONE is (a8)
             else:
                 if p == 0:
                     print("OP_RET_Z, NONE, NONE", end="")
                 elif p == 1:
                     print("OP_RET_C, NONE, NONE", end="")
                 elif p == 2:
-                    print("OP_ADD16, REG_SP, RELATIVE_STACK_8BIT", end="")
+                    print("OP_ADD16, REG_SP, RELATIVE_8BIT", end="")
                 elif p == 3:
-                    print("OP_LD16, REG_SP, RELATIVE_STACK_8BIT", end="") #NONE is SP+r8, look into this
+                    print("OP_LDHL, REG_HL, REG_SP", end="") #NONE is SP+r8, look into this
         elif z ==1:
             if q == 0:
                 print("OP_POP, %s ,NONE"%(rp2[p]), end="")

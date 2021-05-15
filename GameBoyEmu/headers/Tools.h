@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "CPU.h"
 //defines
 
 //enums
@@ -17,16 +18,19 @@
 //prints a single opcode
 
 //prints an 8 bit value in binary
-void PrintBinary(char value);
+void printBinary(char value);
 
 //prints an 8 bit value in hex
-void PrintHex8bit(char value);
+void printHex8bit(char value);
 
 //prints an 16 bit value in hex
-void PrintHex16bit(short value);
+void printHex16bit(short value);
 
 //dumps the values in the CPU registers
-void DumpCPU();
+void printCPU(CPU* CPU_ptr);
+
+//dumps the last 10 entries on the stack
+void printStack(CPU* CPU_ptr);
 
 //test
 void test(void *value1, void *value2);
