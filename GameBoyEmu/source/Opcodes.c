@@ -79,10 +79,8 @@ void* getDataFromParameter(CPU* CPU_ptr, Opcode_Parameter param)
 		return CPU_ptr->RAM_ref + address;
 	}
 	case RELATIVE_8BIT:	//signed value added to PC, but i can't add the value to the pointer directly...
-	{
 		addCycleCount(CPU_ptr, 2);
 		return Read_PC8(CPU_ptr);
-	}
 	//Register from Register
 	case RELATIVE_REG_C:
 		addCycleCount(CPU_ptr, 1);
@@ -154,7 +152,25 @@ void OP_ADC(void *value1, void *value2, CPU* CPU_ptr)
 }
 
 //Add Value2 to Value1
-void OP_ADD16(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+void OP_ADD16(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned short* val1 = (unsigned short*)value1;
+	unsigned short* val2 = (unsigned short*)value2;
+	
+	unsigned int result = *val1 + *val2;
+
+	if(value1 == &(CPU_ptr->SP))
+	{
+		//Zero flag gets reset if an adition was made to the stack pointer
+		//unaffected otherwise
+		CPU_ptr->FLAGS.Zero = 0;
+	}
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = (((*val1 & 0x0fff) + (*val2 &0x0fff)) & 0x1000)?1:0;
+	CPU_ptr->FLAGS.Carry = (result & 0x10000)?1:0;
+
+	addCycleCount(CPU_ptr, 2);
+}
 
 //Add Value2 to Value1 (Always A)
 void OP_ADD8(void *value1, void *value2, CPU* CPU_ptr){ 
@@ -176,7 +192,23 @@ void OP_ADD8(void *value1, void *value2, CPU* CPU_ptr){
 	addCycleCount(CPU_ptr, 1);
 }
 
-void OP_AND(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+//bitwise and Value2 into Value1 (always A)
+void OP_AND(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char* reg1 = (unsigned char*)value1;
+	unsigned char* reg2 = (unsigned char*)value2;
+
+	unsigned char result = *reg1 & *reg2;
+
+	CPU_ptr->FLAGS.Zero = result?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 1;
+	CPU_ptr->FLAGS.Carry = 0;
+
+	*reg1 = result;
+
+	addCycleCount(CPU_ptr, 1);
+}
 void OP_CALL(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_CALL_C(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_CALL_NC(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
@@ -184,17 +216,92 @@ void OP_CALL_NZ(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented
 void OP_CALL_Z(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_CBpref(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_CCF(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_CP(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Compare Value2 to Value1 (always A)
+void OP_CP(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char* val1 = (unsigned char*)value1;
+	unsigned char* val2 = (unsigned char*)value2;
+
+	CPU_ptr->FLAGS.Zero = *val1 == *val2;
+	CPU_ptr->FLAGS.Subtract = 1;
+	CPU_ptr->FLAGS.HCarry = !((*val1 & 0x0f) < (*val2 & 0x0f));
+	CPU_ptr->FLAGS.Carry = !(*val1 < *val2);
+
+	addCycleCount(CPU_ptr, 1);
+}
 void OP_CPL(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_DAA(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_DEC16(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_DEC8(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Decrement Value1
+void OP_DEC16(void *value1, void *value2, CPU* CPU_ptr)
+{
+	(*(unsigned short*)value1)--;
+
+	//No flags affected
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//Decrement Value1
+void OP_DEC8(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char* val1 = (unsigned char*)value1;
+	
+	(*val1)--;
+
+	CPU_ptr->FLAGS.Zero = *val1?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	//if a borrow happend from the second nibble, then the fisrt nibble will be all ones
+	CPU_ptr->FLAGS.HCarry = (*val1 & 0x0f) == 0xf;
+
+	//if (HL) was used then this opperation costs one extra cycle
+	if(value1 == CPU_ptr->RAM_ref + CPU_ptr->HL)
+	{
+		addCycleCount(CPU_ptr, 2);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 1);
+	}
+}
 void OP_DI(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_EI(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_ERROR(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_HALT(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_INC16(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_INC8(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Increment Value2
+void OP_INC16(void *value1, void *value2, CPU* CPU_ptr)
+{
+	(*(unsigned short*)value1)++;
+
+	//no flags affected
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//Increment Value1
+void OP_INC8(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char* val1 = (unsigned char*)value1;
+	
+	(*val1)++;
+
+	CPU_ptr->FLAGS.Zero = *val1?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	//if a half carry happened, then the last nibble will all be zeroes
+	CPU_ptr->FLAGS.HCarry = (*val1 & 0x0f)?0:1;
+
+	//if (HL) was used then this opperation costs one extra cycle
+	if(value1 == CPU_ptr->RAM_ref + CPU_ptr->HL)
+	{
+		addCycleCount(CPU_ptr, 2);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 1);
+	}
+}
 void OP_JP(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_JP_C(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_JP_NC(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
@@ -252,9 +359,27 @@ void OP_LDHL(void *value1, void *value2, CPU* CPU_ptr)
 //No Operation
 void OP_NOP(void *value1, void *value2, CPU* CPU_ptr)
 { 
+	//no parameters, no flags affected
 	addCycleCount(CPU_ptr, 1);
 }
-void OP_OR(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Bitwise OR value2 into value1 (always A)
+void OP_OR(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char* reg1 = (unsigned char*)value1;
+	unsigned char* reg2 = (unsigned char*)value2;
+
+	unsigned char result = *reg1 | *reg2;
+
+	CPU_ptr->FLAGS.Zero = result?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = 0;
+
+	*reg1 = result;
+
+	addCycleCount(CPU_ptr, 1);
+}
 
 //Pop two bytes off the stack into a register pair
 void OP_POP(void *value1, void *value2, CPU* CPU_ptr)
@@ -290,7 +415,26 @@ void OP_RLCA(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ 
 void OP_RRA(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_RRCA(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_RST(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_SBC(void *value1, void *valuee2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Subctract with carry
+void OP_SBC(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char* val1 = (unsigned char*)value1;
+	unsigned char* val2 = (unsigned char*)value2;
+
+	//reduce the result by 1 if the carry flag isn't set
+	unsigned short result = *val1 - (*val2 - 1 + CPU_ptr->FLAGS.Carry);
+
+		//check if the first byte of the result is zero
+	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
+	CPU_ptr->FLAGS.Subtract = 1;
+	//check a carry took place from the second nibble to the first
+	CPU_ptr->FLAGS.HCarry = !((*val1 & 0x0f) < ((*val2 - 1 + CPU_ptr->FLAGS.Carry) & 0x0f));
+	//check if a carry took place into the second nibble
+	CPU_ptr->FLAGS.Carry = !(*val1 < (*val2 - 1 + CPU_ptr->FLAGS.Carry));
+
+	addCycleCount(CPU_ptr, 1);
+}
 void OP_SCF(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 void OP_STOP(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 
@@ -314,7 +458,24 @@ void OP_SUB(void *value1, void *value2, CPU* CPU_ptr)
 
 	addCycleCount(CPU_ptr, 1);
 }
-void OP_XOR(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Bitwise XOR value2 into value1 (always A)
+void OP_XOR(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char* reg1 = (unsigned char*)value1;
+	unsigned char* reg2 = (unsigned char*)value2;
+
+	unsigned char result = *reg1 ^ *reg2;
+
+	CPU_ptr->FLAGS.Zero = result?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = 0;
+
+	*reg1 = result;
+
+	addCycleCount(CPU_ptr, 1);
+}
 
 
 //functions for CB prefixed opcodes
