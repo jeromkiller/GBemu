@@ -154,20 +154,36 @@ void OP_ADC(void *value1, void *value2, CPU* CPU_ptr)
 //Add Value2 to Value1
 void OP_ADD16(void *value1, void *value2, CPU* CPU_ptr)
 {
+	unsigned int result = 0;
 	unsigned short* val1 = (unsigned short*)value1;
-	unsigned short* val2 = (unsigned short*)value2;
-	
-	unsigned int result = *val1 + *val2;
 
 	if(value1 == &(CPU_ptr->SP))
 	{
+		signed char* val2 = (signed char*)value2;
+
 		//Zero flag gets reset if an adition was made to the stack pointer
 		//unaffected otherwise
 		CPU_ptr->FLAGS.Zero = 0;
+
+		//The carry and half carry seem to be based on the lower byte of SP, when adding val2 as unsigned
+		CPU_ptr->FLAGS.HCarry = (((*val1 & 0x000f) + ((unsigned char)*val2 & 0x0f)) & 0x10)?1:0;
+		CPU_ptr->FLAGS.Carry = (((*val1 & 0x00ff) + ((unsigned char)*val2 & 0xff)) & 0x100)?1:0;
+
+		result = *val1 + *val2;
 	}
+	else
+	{
+		unsigned short* val2 = (unsigned short*)value2;
+
+		result = *val1 + *val2;
+
+		CPU_ptr->FLAGS.HCarry = (((*val1 & 0x0fff) + (*val2 &0x0fff)) & 0x1000)?1:0;
+		CPU_ptr->FLAGS.Carry = (result & 0x10000)?1:0;
+	}
+
 	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = (((*val1 & 0x0fff) + (*val2 &0x0fff)) & 0x1000)?1:0;
-	CPU_ptr->FLAGS.Carry = (result & 0x10000)?1:0;
+	
+	*val1 = result;
 
 	addCycleCount(CPU_ptr, 2);
 }
@@ -347,9 +363,9 @@ void OP_LDHL(void *value1, void *value2, CPU* CPU_ptr)
 	CPU_ptr->FLAGS.Zero = 0;
 	CPU_ptr->FLAGS.Subtract = 0;
 	//check if the low nibbles added together cause an overflow to bit 4
-	CPU_ptr->FLAGS.HCarry = (((*SP & 0xf) + (relativeValue & 0xf)) & 0x10)? 1:0;
+	CPU_ptr->FLAGS.HCarry = (((*SP & 0xf) + ((unsigned char)relativeValue & 0xf)) & 0x10)? 1:0;
 	//check if the low and high nibbles added together cause an overflow to bit 7
-	CPU_ptr->FLAGS.Carry = (((*SP & 0xff) + (relativeValue & 0xff)) & 0x100)? 1:0;
+	CPU_ptr->FLAGS.Carry = (((*SP & 0xff) + ((unsigned char)relativeValue & 0xff)) & 0x100)? 1:0;
 
 	*HL = result;
 
