@@ -5,14 +5,13 @@
 #include <stdlib.h>
 #include "RAM.h"
 
-//F register flags
-/*	|   7   |  6   |   5    |   4    |3|2|1|0|
-	|Zero(Z)|Sub(N)|HalfC(H)|Carry(C)|0|0|0|0|
-*/
-//#define FLAG_Z (CPU_ptr->Zero)
-//#define FLAG_N (CPU_ptr->Subtract)
-//#define FLAG_H (CPU_ptr->HCarry)
-//#define FLAG_C (CPU_ptr->Carry)
+//Enums
+typedef enum CPU_statuses
+{
+	RUNNING = 0,
+	HALTED,
+	STOPPED,
+}CPU_status;
 
 //structs
 typedef struct CPU_flag_registers
@@ -74,6 +73,10 @@ typedef struct CPU_struct
 	unsigned short SP;
 	unsigned short PC;
 	unsigned long CycleNumber;
+	//CPU info
+	CPU_status status;
+	unsigned char interrupt_status;
+
 	//Refference to the start of ram, for easier access
 	RAM* RAM_ref;
 }CPU;

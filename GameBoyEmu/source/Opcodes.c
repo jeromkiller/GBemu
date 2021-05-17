@@ -128,6 +128,20 @@ void addCycleCount(CPU* CPU_ptr, int cycles)
 	CPU_ptr->CycleNumber += cycles;
 }
 
+void PUSH_Value(unsigned short value, CPU* CPU_ptr)
+{
+	unsigned short* StackLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->SP);
+	*StackLocation = value;
+	CPU_ptr->SP -= 2;
+}
+
+unsigned short POP_Value(CPU* CPU_ptr)
+{
+	CPU_ptr->SP += 2;
+	unsigned short* StackLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->SP);
+	return *StackLocation;
+}
+
 //functions for normal opcodes
 //cpu instructions
 //Add Value2 to Value1 (Always A) and add Carry;
@@ -225,13 +239,66 @@ void OP_AND(void *value1, void *value2, CPU* CPU_ptr)
 
 	addCycleCount(CPU_ptr, 1);
 }
-void OP_CALL(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_CALL_C(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_CALL_NC(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_CALL_NZ(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_CALL_Z(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Push return address to stack, and jump to value1
+void OP_CALL(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned short callAddress = *(unsigned short*)value1;
+	unsigned short returnValue = CPU_ptr->PC + 1;
+
+	PUSH_Value(returnValue, CPU_ptr);
+
+	CPU_ptr->PC = callAddress;
+	
+	addCycleCount(CPU_ptr, 3);
+}
+
+//Push return address to stack, and jump to value1 if the carry is set
+void OP_CALL_C(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(CPU_ptr->FLAGS.Carry)
+	{
+		OP_CALL(value1, value2, CPU_ptr);
+	}
+}
+
+//Push return address to stack, and jump to value1 if the carry is not set
+void OP_CALL_NC(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(!CPU_ptr->FLAGS.Carry)
+	{
+		OP_CALL(value1, value2, CPU_ptr);
+	}
+}
+
+//Push return address to stack, and jump to value1 if the zero is not set
+void OP_CALL_NZ(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(!CPU_ptr->FLAGS.Zero)
+	{
+		OP_CALL(value1, value2, CPU_ptr);
+	}
+}
+
+//Push return address to stack, and jump to value1 if the zero is set
+void OP_CALL_Z(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(CPU_ptr->FLAGS.Zero)
+	{
+		OP_CALL(value1, value2, CPU_ptr);
+	}
+}
 void OP_CBpref(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_CCF(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Invert the carry flag
+void OP_CCF(void *value1, void *value2, CPU* CPU_ptr)
+{
+	CPU_ptr->FLAGS.Carry = !(CPU_ptr->FLAGS.Carry);
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+
+	addCycleCount(CPU_ptr, 1);
+}
 
 //Compare Value2 to Value1 (always A)
 void OP_CP(void *value1, void *value2, CPU* CPU_ptr)
@@ -246,7 +313,17 @@ void OP_CP(void *value1, void *value2, CPU* CPU_ptr)
 
 	addCycleCount(CPU_ptr, 1);
 }
-void OP_CPL(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Flip all bits in REG_A
+void OP_CPL(void *value1, void *value2, CPU* CPU_ptr)
+{
+	CPU_ptr->A = ~CPU_ptr->A;
+
+	CPU_ptr->FLAGS.Subtract = 1;
+	CPU_ptr->FLAGS.HCarry = 1;
+
+	addCycleCount(CPU_ptr, 1);
+}
 void OP_DAA(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
 
 //Decrement Value1
@@ -281,10 +358,31 @@ void OP_DEC8(void *value1, void *value2, CPU* CPU_ptr)
 		addCycleCount(CPU_ptr, 1);
 	}
 }
-void OP_DI(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_EI(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Disable interrupts
+void OP_DI(void *value1, void *value2, CPU* CPU_ptr)
+{
+	CPU_ptr->interrupt_status = 0;
+
+	addCycleCount(CPU_ptr, 1);
+}
+
+//Enable interrupts
+void OP_EI(void *value1, void *value2, CPU* CPU_ptr)
+{
+	CPU_ptr->interrupt_status = 1;
+
+	addCycleCount(CPU_ptr, 1);
+}
 void OP_ERROR(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_HALT(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Halt the cpu untill an interrupt occurs
+void OP_HALT(void *value1, void *value2, CPU* CPU_ptr)
+{
+	CPU_ptr->status = HALTED;
+
+	addCycleCount(CPU_ptr, 1);
+}
 
 //Increment Value2
 void OP_INC16(void *value1, void *value2, CPU* CPU_ptr)
@@ -318,16 +416,93 @@ void OP_INC8(void *value1, void *value2, CPU* CPU_ptr)
 		addCycleCount(CPU_ptr, 1);
 	}
 }
-void OP_JP(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_JP_C(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_JP_NC(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_JP_NZ(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_JP_Z(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_JR(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_JR_C(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_JR_NC(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_JR_NZ(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_JR_Z(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Jump to Value1 
+void OP_JP(void *value1, void *value2, CPU* CPU_ptr)
+{
+	//I have to check the two bytes are the right way around
+	CPU_ptr->PC = *(unsigned short*)value1;
+
+	addCycleCount(CPU_ptr, 1);
+}
+
+//Jump to Value1 if the carry flag is set
+void OP_JP_C(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(CPU_ptr->FLAGS.Carry)
+	{
+		OP_JP(value1, value2, CPU_ptr);
+	}
+}
+
+//Jump to Value1 if the carry flag is not set
+void OP_JP_NC(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(!CPU_ptr->FLAGS.Carry)
+	{
+		OP_JP(value1, value2, CPU_ptr);
+	}
+}
+
+//Jump to Value1 if the zero flag is not set
+void OP_JP_NZ(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(!CPU_ptr->FLAGS.Zero)
+	{
+		OP_JP(value1, value2, CPU_ptr);
+	}
+}
+
+//Jump to Value1 if the zero flag is set
+void OP_JP_Z(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(CPU_ptr->FLAGS.Zero)
+	{
+		OP_JP(value1, value2, CPU_ptr);
+	}
+}
+
+//Jump to PC + value1
+void OP_JR(void *value1, void *value2, CPU* CPU_ptr)
+{
+	CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
+	addCycleCount(CPU_ptr, 1);
+}
+
+//Jump to PC + value1 if the Carry is set
+void OP_JR_C(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(CPU_ptr->FLAGS.Carry)
+	{
+		OP_JR(value1, value2, CPU_ptr);
+	}
+}
+
+//Jump to PC + value1 if the Carry is not set
+void OP_JR_NC(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(!CPU_ptr->FLAGS.Carry)
+	{
+		OP_JR(value1, value2, CPU_ptr);
+	}
+}
+
+//Jump to PC + value1 if the Zero is not set
+void OP_JR_NZ(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(!CPU_ptr->FLAGS.Zero)
+	{
+		OP_JR(value1, value2, CPU_ptr);
+	}
+}
+
+//Jump to PC + value1 if the Zero is set
+void OP_JR_Z(void *value1, void *value2, CPU* CPU_ptr)
+{	if(CPU_ptr->FLAGS.Carry)
+	{
+		OP_JR(value1, value2, CPU_ptr);
+	}
+}
 
 //Load Value2, into Value1
 void OP_LD16(void *value1, void *value2, CPU* CPU_ptr)
@@ -402,9 +577,7 @@ void OP_POP(void *value1, void *value2, CPU* CPU_ptr)
 {
 	unsigned short* Register = (unsigned short*)value1;
 
-	CPU_ptr->SP += 2;
-	unsigned short* StackLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->SP);
-	*Register = *StackLocation;
+	*Register = POP_Value(CPU_ptr);
 
 	addCycleCount(CPU_ptr, 3);
 }
@@ -414,23 +587,146 @@ void OP_PUSH(void *value1, void *value2, CPU* CPU_ptr)
 { 
 	unsigned short* Register = (unsigned short*)value1;
 
-	unsigned short* StackLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->SP);
-	*StackLocation = *Register;
-	CPU_ptr->SP -= 2;
+	PUSH_Value(*Register, CPU_ptr);
 
 	addCycleCount(CPU_ptr, 4);
 }
-void OP_RET(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_RETI(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_RET_C(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_RET_NC(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_RET_NZ(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_RET_Z(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_RLA(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_RLCA(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_RRA(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_RRCA(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_RST(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//pop the return value from the stack and return to said value
+void OP_RET(void *value1, void *value2, CPU* CPU_ptr)
+{
+	CPU_ptr->PC = POP_Value(CPU_ptr);
+	addCycleCount(CPU_ptr, 2);
+}
+
+//Return and turn interupts back on
+void OP_RETI(void *value1, void *value2, CPU* CPU_ptr)
+{
+	OP_RET(value1, value2, CPU_ptr);
+	CPU_ptr->interrupt_status = 1;
+}
+
+//return of the carry flag is set
+void OP_RET_C(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(CPU_ptr->FLAGS.Carry)
+	{
+		OP_RET(value1, value2, CPU_ptr);
+	}
+}
+
+//return of the carry flag is not set
+void OP_RET_NC(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(!CPU_ptr->FLAGS.Carry)
+	{
+		OP_RET(value1, value2, CPU_ptr);
+	}
+}
+
+//return of the zero flag is not set
+void OP_RET_NZ(void *value1, void *value2, CPU* CPU_ptr)
+{	if(!CPU_ptr->FLAGS.Zero)
+	{
+		OP_RET(value1, value2, CPU_ptr);
+	}
+}
+
+//return of the zero flag is set
+void OP_RET_Z(void *value1, void *value2, CPU* CPU_ptr)
+{
+	if(CPU_ptr->FLAGS.Zero)
+	{
+		OP_RET(value1, value2, CPU_ptr);
+	}
+}
+
+//Rotate A left through carry
+void OP_RLA(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char outbit = CPU_ptr->A & 0x80;
+	unsigned char shifted = CPU_ptr->A << 1;
+
+	if(CPU_ptr->FLAGS.Carry)
+	{
+		shifted = shifted | 0x01; 
+	}
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	addCycleCount(CPU_ptr, 1);
+}
+
+//Rotate A left into carry
+void OP_RLCA(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char outbit = CPU_ptr->A & 0x80;
+	unsigned char shifted = CPU_ptr->A << 1;
+
+	if(outbit)
+	{
+		shifted = shifted | 0x01;
+	}
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	CPU_ptr->A = shifted;
+
+	addCycleCount(CPU_ptr, 1);
+}
+
+//Rotate A left through carry
+void OP_RRA(void *value1, void *value2, CPU* CPU_ptr)
+{
+		unsigned char outbit = CPU_ptr->A & 0x01;
+	unsigned char shifted = CPU_ptr->A >> 1;
+
+	if(CPU_ptr->FLAGS.Carry)
+	{
+		shifted = shifted | 0x80; 
+	}
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	addCycleCount(CPU_ptr, 1);
+}
+
+//Rotate A right into carry
+void OP_RRCA(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char outbit = CPU_ptr->A & 0x01;
+	unsigned char shifted = CPU_ptr->A >> 1;
+
+	if(outbit)
+	{
+		shifted = shifted | 0x80;
+	}
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	CPU_ptr->A = shifted;
+
+	addCycleCount(CPU_ptr, 1);
+	
+}
+void OP_RST(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned short resetVector = (unsigned char*)value1 - CPU_ptr->RAM_ref;
+
+	CPU_ptr->PC = resetVector;
+}
 
 //Subctract with carry
 void OP_SBC(void *value1, void *value2, CPU* CPU_ptr)
@@ -451,8 +747,27 @@ void OP_SBC(void *value1, void *value2, CPU* CPU_ptr)
 
 	addCycleCount(CPU_ptr, 1);
 }
-void OP_SCF(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
-void OP_STOP(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//Set the carry flag
+void OP_SCF(void *value1, void *value2, CPU* CPU_ptr)
+{
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = 1;
+
+	addCycleCount(CPU_ptr, 1);
+}
+
+//halt the cpu and lcd untill a button is pressed
+void OP_STOP(void *value1, void *value2, CPU* CPU_ptr)
+{
+	CPU_ptr->status = STOPPED;
+
+	//the stop opcode is actualy two bytes long (followed by a 00 (OP_NOP))
+	CPU_ptr->PC++;
+
+	addCycleCount(CPU_ptr, 1);
+}
 
 //Subtract value2 from value1 (Always A)
 void OP_SUB(void *value1, void *value2, CPU* CPU_ptr)

@@ -241,7 +241,7 @@ def PrintNoPrefix( _opcode ):
                 print("OP_ERROR, NONE, NONE", end="") #something went wrong if you get here
         elif z ==4:
             if y < 4:
-                print("OP_CALL_%s, NONE, NONE"%(cc[y]), end="")
+                print("OP_CALL_%s, ADDRESS_16BIT, NONE"%(cc[y]), end="")
             else:
                 print("OP_ERROR, NONE, NONE", end="")
         elif z ==5:

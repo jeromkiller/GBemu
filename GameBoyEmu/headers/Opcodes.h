@@ -67,6 +67,9 @@ void* getDataFromParameter(CPU* CPU_ptr, Opcode_Parameter param);
 //Adds a couple of cycles to the cycle counter
 void addCycleCount(CPU* CPU_ptr, int cycles);
 
+void PUSH_Value(unsigned short reg, CPU* CPU_ptr);
+unsigned short POP_Value(CPU* CPU_ptr);
+
 //functions for normal opcodes
 void OP_ADC(void *value1, void *value2, CPU* CPU_ptr);
 void OP_ADD16(void *value1, void *value2, CPU* CPU_ptr);
