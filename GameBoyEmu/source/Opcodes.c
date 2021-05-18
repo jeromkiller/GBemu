@@ -12,12 +12,12 @@ void performNextOpcode(CPU* CPU_ptr)
 
 void performOpcode(CPU* CPU_ptr, unsigned char opcode)
 {
-	Instruction instr = getNormalOpcode(opcode);
+	Instruction* instr = getNormalOpcode(opcode);
 
-	void* param1 = getDataFromParameter(CPU_ptr, instr.param1);
-	void* param2 = getDataFromParameter(CPU_ptr, instr.param2);
+	void* param1 = getDataFromParameter(CPU_ptr, instr->param1);
+	void* param2 = getDataFromParameter(CPU_ptr, instr->param2);
 
-	instr.Instruction(param1, param2, CPU_ptr);
+	instr->Instruction(param1, param2, CPU_ptr);
 }
 
 
@@ -288,7 +288,16 @@ void OP_CALL_Z(void *value1, void *value2, CPU* CPU_ptr)
 		OP_CALL(value1, value2, CPU_ptr);
 	}
 }
-void OP_CBpref(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+
+//call the CB prefixed opcode
+void OP_CBpref(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char opcode = *Read_PC8(CPU_ptr);
+	CB_Instruction* CB_Op = getCBOpcode(opcode);
+	unsigned char* reg = (unsigned char*)getDataFromParameter(CPU_ptr, CB_Op->param);
+
+	CB_Op->CB_Instruction(CB_Op->bit, reg, CPU_ptr);
+}
 
 //Invert the carry flag
 void OP_CCF(void *value1, void *value2, CPU* CPU_ptr)
@@ -324,7 +333,54 @@ void OP_CPL(void *value1, void *value2, CPU* CPU_ptr)
 
 	addCycleCount(CPU_ptr, 1);
 }
-void OP_DAA(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+void OP_DAA(void *value1, void *value2, CPU* CPU_ptr)
+{
+	unsigned char lowNibble = CPU_ptr->A & 0x0F;
+	unsigned char highNibble = CPU_ptr->A & 0xF0;
+	unsigned char additionValue = 0;
+
+	if(CPU_ptr->FLAGS.Subtract)	//last opperation was subctraction
+	{
+		if(lowNibble >= 0x06 && CPU_ptr->FLAGS.HCarry 
+		&& highNibble <= 0x80 && !CPU_ptr->FLAGS.Carry)
+		{
+			additionValue = 0xFA;
+		}
+		else if(lowNibble <= 0x09 && !CPU_ptr->FLAGS.HCarry
+		&& highNibble >= 0x70 && CPU_ptr->FLAGS.Carry)
+		{
+			additionValue = 0xA0;
+			CPU_ptr->FLAGS.Carry = 1;
+		}
+		else if(lowNibble >= 0x06 && CPU_ptr->FLAGS.HCarry
+		&& highNibble >= 0x60 && CPU_ptr->FLAGS.Carry)
+		{
+			additionValue = 0x9A;
+			CPU_ptr->FLAGS.Carry = 1;
+		}
+	}
+	else	//last opperation was an addition
+	{
+		//check low nibble
+		if((lowNibble >= 0x0A) ||
+		((lowNibble <= 0x03) && CPU_ptr->FLAGS.HCarry))
+		{
+			additionValue |= 0x06;
+		} 
+		if((highNibble >= 0xA0) ||
+		((highNibble >= 0x90) && (lowNibble >= 0x0A)) ||
+		((highNibble <= 0x20) && CPU_ptr->FLAGS.Carry) ||
+		((highNibble <= 0x30) && (lowNibble <= 0x03) && CPU_ptr->FLAGS.HCarry))
+		{
+			additionValue |= 0x60;
+			CPU_ptr->FLAGS.Carry = 1;
+		}
+	}
+
+	CPU_ptr->A += additionValue;
+
+	addCycleCount(CPU_ptr, 1);
+}
 
 //Decrement Value1
 void OP_DEC16(void *value1, void *value2, CPU* CPU_ptr)
@@ -374,7 +430,10 @@ void OP_EI(void *value1, void *value2, CPU* CPU_ptr)
 
 	addCycleCount(CPU_ptr, 1);
 }
-void OP_ERROR(void *value1, void *value2, CPU* CPU_ptr){ /*not yet implemented*/ }
+void OP_ERROR(void *value1, void *value2, CPU* CPU_ptr)
+{
+	printf("Illegal opcode encountered\nSomething has probably gone wrong in the emulator");
+}
 
 //Halt the cpu untill an interrupt occurs
 void OP_HALT(void *value1, void *value2, CPU* CPU_ptr)
@@ -657,6 +716,8 @@ void OP_RLA(void *value1, void *value2, CPU* CPU_ptr)
 	CPU_ptr->FLAGS.HCarry = 0;
 	CPU_ptr->FLAGS.Carry = outbit?1:0;
 
+	CPU_ptr->A = shifted;
+
 	addCycleCount(CPU_ptr, 1);
 }
 
@@ -696,6 +757,8 @@ void OP_RRA(void *value1, void *value2, CPU* CPU_ptr)
 	CPU_ptr->FLAGS.Subtract = 0;
 	CPU_ptr->FLAGS.HCarry = 0;
 	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	CPU_ptr->A = shifted;
 
 	addCycleCount(CPU_ptr, 1);
 }
@@ -808,5 +871,185 @@ void OP_XOR(void *value1, void *value2, CPU* CPU_ptr)
 	addCycleCount(CPU_ptr, 1);
 }
 
-
 //functions for CB prefixed opcodes
+//Rotate reg left
+void OP_RLC(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+	unsigned char outbit = *reg & 0x80;
+	unsigned char shifted = *reg << 1;
+
+	if(outbit)
+	{
+		shifted = shifted | 0x01;
+	}
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	*reg = shifted;
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//Rotate reg right
+void OP_RRC(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+		unsigned char outbit = *reg & 0x01;
+	unsigned char shifted = *reg >> 1;
+
+	if(outbit)
+	{
+		shifted = shifted | 0x80;
+	}
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	*reg = shifted;
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//Rotate reg left through carry
+void OP_RL(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+	unsigned char outbit = *reg & 0x80;
+	unsigned char shifted = *reg << 1;
+
+	if(CPU_ptr->FLAGS.Carry)
+	{
+		shifted = shifted | 0x01; 
+	}
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	*reg = shifted;
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//Rotate right through carry
+void OP_RR(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+	unsigned char outbit = *reg & 0x01;
+	unsigned char shifted = *reg >> 1;
+
+	if(CPU_ptr->FLAGS.Carry)
+	{
+		shifted = shifted | 0x80; 
+	}
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	*reg = shifted;
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//shift reg left into carry
+void OP_SLA(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+	unsigned char outbit = *reg & 0x80;
+	unsigned char shifted = *reg << 1;
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	*reg = shifted;
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//shift reg right into carry (msb stays the same)
+void OP_SRA(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+	unsigned char outbit = *reg & 0x01;
+	unsigned char msb = *reg & 0x80;
+	unsigned char shifted = *reg >> 1;
+
+	shifted = shifted | msb;
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	*reg = shifted;
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//shift reg right into carry
+void OP_SRL(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+	unsigned char outbit = *reg & 0x01;
+	unsigned char shifted = *reg >> 1;
+
+	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = outbit?1:0;
+
+	*reg = shifted;
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//swap the upper and lower nibbles of reg
+void OP_SWAP(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+	unsigned char upNibble = *reg & 0xF0;
+	unsigned char lowNibble = *reg & 0x0F;
+
+	CPU_ptr->FLAGS.Zero = *reg?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_ptr->FLAGS.Carry = 0;
+
+	*reg = (upNibble >> 4) | (lowNibble << 4);
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//test bit in reg
+void OP_BIT(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+	unsigned char mask = 1 << bit;
+	unsigned char result = *reg & mask;
+
+	CPU_ptr->FLAGS.Zero = result?0:1;
+	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.HCarry = 1;
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//reset bit of reg
+void OP_RES(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+	unsigned char mask = ~(1 << bit);
+	*reg = *reg & mask;
+
+	addCycleCount(CPU_ptr, 2);
+}
+
+//set bit of reg
+void OP_SET(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+{
+	unsigned char mask = 1 << bit;
+	*reg = *reg & mask;
+
+	addCycleCount(CPU_ptr, 2);
+}

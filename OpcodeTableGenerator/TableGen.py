@@ -15,7 +15,7 @@ rp = ["REG_BC", "REG_DE", "REG_HL", "REG_SP"]
 rp2 = ["REG_BC", "REG_DE", "REG_HL", "REG_AF"]
 cc = ["NZ", "Z", "NC", "C", "_err", "_err", "_err", "_err"]
 alu = ["OP_ADD8", "OP_ADC", "OP_SUB", "OP_SBC", "OP_AND", "OP_XOR", "OP_OR", "OP_CP"]
-rot = ["OP_RLC", "OP_RRC", "OP_RL", "OP_RR", "OP_SLA", "OP_SRA", "OP_SLL", "OP_SRL"]
+rot = ["OP_RLC", "OP_RRC", "OP_RL", "OP_RR", "OP_SLA", "OP_SRA", "OP_SWAP", "OP_SRL"]
 
 def main():
     #user code here
@@ -269,7 +269,7 @@ def printCBprefixed(_opcode):
 #real wonkey code this right here
 
     if x == 0:
-        print("%s, %s, NONE"%(rot[y], r[z]), end="")
+        print("%s, 0, %s"%(rot[y], r[z]), end="")
     elif x ==1:
         print("OP_BIT, %s, %s"%(y, r[z]), end="")
     elif x ==2:

@@ -58,6 +58,14 @@ typedef struct Instruction_struct
 	Opcode_Parameter param2;
 }Instruction;
 
+//structure for CB prefixed opcodes
+typedef struct CB_Instruction_struct
+{
+	void(*CB_Instruction)(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+	unsigned char bit;
+	Opcode_Parameter param;
+}CB_Instruction;
+
 //Helper functions
 void performNextOpcode(CPU* CPU_ptr);
 
@@ -127,8 +135,17 @@ void OP_STOP(void *value1, void *value2, CPU* CPU_ptr);
 void OP_SUB(void *value1, void *value2, CPU* CPU_ptr);
 void OP_XOR(void *value1, void *value2, CPU* CPU_ptr);
 
-
 //functions for CB prefixed opcodes
-
+void OP_RLC(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+void OP_RRC(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+void OP_RL(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+void OP_RR(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+void OP_SLA(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+void OP_SRA(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+void OP_SRL(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+void OP_SWAP(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+void OP_BIT(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+void OP_RES(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
+void OP_SET(unsigned char bit, unsigned char* reg, CPU* CPU_ptr);
 
 #endif // !_Opcodes_h
