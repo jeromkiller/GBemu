@@ -3,6 +3,7 @@
 
 #include "CPU.h"
 #include "RAM.h"
+#include "RomMapper.h"
 #include "Opcodes.h"
 
 #include "Tools.h"
@@ -10,9 +11,11 @@
 
 int main()
 {
+	static char ROM_Path[] = {"./.roms/testRoms/cpu_instrs.gb\0"};
 	//startup
 	RAM* GameboyRAM = RAM_init();
-	CPU* GameboyCPU = CPU_init(GameboyRAM);
+	Memory_Mapper* mapper = Mapper_init(ROM_Path, GameboyRAM);
+	CPU* GameboyCPU = CPU_init(GameboyRAM, mapper);
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
@@ -28,6 +31,7 @@ int main()
 ///////////////////////////////////////////////////////////////////////
 
 	CPU_dispose(GameboyCPU);
+	Mapper_dispose(mapper);
 	RAM_dispose(GameboyRAM);
     return 0;
 }

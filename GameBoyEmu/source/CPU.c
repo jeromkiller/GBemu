@@ -6,7 +6,7 @@
 #include "RAM.h"
 
 //initiate CPU
-CPU* CPU_init(RAM* RAM_ptr) 
+CPU* CPU_init(RAM* RAM_ptr, Memory_Mapper* Mapper_ptr);
 {
 	//check if the CPU is already inited
 	if(RAM_ptr == NULL)
@@ -23,6 +23,7 @@ CPU* CPU_init(RAM* RAM_ptr)
 
 	//copy the ram refference
 	newCPU->RAM_ref = RAM_ptr;
+	newCPU->MAPPER_ref = Mapper_ptr;
 	//set the Program Counter to location 0x0100
 	newCPU->PC = 0x0100;
 	newCPU->SP = 0xFFFE;

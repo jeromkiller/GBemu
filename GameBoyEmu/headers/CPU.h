@@ -4,6 +4,7 @@
 //Includes
 #include <stdlib.h>
 #include "RAM.h"
+#include "RomMapper.h"
 
 //Enums
 typedef enum CPU_statuses
@@ -75,15 +76,16 @@ typedef struct CPU_struct
 	unsigned long CycleNumber;
 	//CPU info
 	CPU_status status;
-	unsigned char interrupt_status;
+	unsigned char interrupt_status;	//the use of interrupt status may be wrong, but i'll figure that out once i get to implementing interrupts
 
 	//Refference to the start of ram, for easier access
 	RAM* RAM_ref;
+	Memory_Mapper* MAPPER_ref;
 }CPU;
 
 //function prototypes
 //initiate CPU
-CPU* CPU_init(RAM* RAM_ptr);
+CPU* CPU_init(RAM* RAM_ptr, Memory_Mapper* Mapper_ptr);
 
 //free CPU
 void CPU_dispose(CPU* CPU_ptr);
