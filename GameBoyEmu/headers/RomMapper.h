@@ -22,6 +22,12 @@ typedef enum Memory_controller_enum
     MBC5
 }Memory_controller_type;
 
+typedef enum Memory_mode_enum
+{
+    ROM16_RAM8 = 0,
+    ROM4_RAM32,
+}Memory_mode;
+
 //structs
 //each rom bank is a linked list that links to the next bank
 typedef struct Data_bank_struct
@@ -35,11 +41,14 @@ typedef struct Data_bank_struct
 typedef struct Memory_Mapper_struct
 {
     Memory_controller_type memory_controller;
+    Memory_mode memoryMode;
     size_t rom_size;
     unsigned char num_rom_banks;
+    unsigned char rom_msb;
     size_t ram_size;
     unsigned char num_ram_banks;
     unsigned char active_ram_bank;
+    unsigned char ram_enabled;
     unsigned char battery;
     Data_bank* romBank_ptr;
     Data_bank* ramBank_ptr;
@@ -88,4 +97,9 @@ void swap_Rambank(unsigned char newBankNumber, Memory_Mapper* mapper, RAM* RAM_p
 //find a bank by id, returns NULL if bank could not be found
 Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank);
 
+//functions for writing to the rom bank
+void write_to_rom(unsigned char* valueLocation, Memory_Mapper* mapper, RAM* RAM_ptr);
+
+//handle the write as a MBC1 controller
+void write_to_MBC1(unsigned char writeValue, unsigned char writeLocation, Memory_Mapper* mapper, RAM* RAM_ptr);
 #endif //_ROM_MAPPER

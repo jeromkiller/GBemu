@@ -36,7 +36,7 @@ Memory_Mapper* Mapper_init(char* romPath, RAM* RAM_ptr)
     swap_Rombank(1, mapper, RAM_ptr);
 
     //laod the first ram bank
-    swap_Rambank(1, mapper, RAM_ptr);
+    swap_Rambank(0, mapper, RAM_ptr);
 
     return mapper;
 }
@@ -318,13 +318,18 @@ void swap_Rambank(unsigned char newBankNumber, Memory_Mapper* mapper, RAM* RAM_p
 
     //copy the contents of the new bank to the switable bank segment
     memcpy(swap_Rambank, newBank->data, RAM_BANK_SIZE);
+    mapper->active_ram_bank = newBankNumber;
 }
 
 Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank)
 {
     Data_bank* bank = startBank;
-    while((bank->bankId != bankNumber) && (NULL != bank))
+    while(NULL != bank)
     {
+        if(bank->bankId != bankNumber)
+        {
+            break;
+        }
         bank = bank->nextBank;
     }
 
@@ -334,4 +339,84 @@ Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank)
     }
 
     return bank;
+}
+
+void write_to_rom(unsigned char* valueLocation, Memory_Mapper* mapper, RAM* RAM_ptr)
+{
+    //check what part of rom was written to
+    unsigned short romLocation = valueLocation - RAM_ptr;
+    unsigned char writeValue = *valueLocation;
+    
+    //is the address we are writing to in rom space?
+    if(romLocation > RAM_LOCATION_ROM_SWAPPABLE_END)
+    {
+        printf("Error: location %hu is not located in rom space'n", romLocation);
+        return;
+    }
+    switch(mapper->memory_controller)
+    {
+        case Rom_Only:
+            printf("Warning: memory controller is in rom only mode, writes to rom location %hu is ignored\n", romLocation);
+            return;
+        case MBC1:
+            write_to_MBC1(writeValue, romLocation, mapper, RAM_ptr);
+            break;
+        case MBC2:
+            //TODO: implement
+            break;    
+        case MBC3:
+            //TODO: implement
+            break;
+        case MBC5:
+            //TODO: implement
+            break;    
+    }
+}
+
+void write_to_MBC1(unsigned char writeValue, unsigned char writeLocation, Memory_Mapper* mapper, RAM* RAM_ptr)
+{
+    //call the right function depending on where was written to
+    if((writeLocation >= 0x6000) && (writeLocation <= 0x7FFF))
+    {
+        //change memory mode
+        mapper->memoryMode = (writeValue & 0x01)?ROM4_RAM32:ROM16_RAM8;
+    }
+    else if((writeLocation >= 0x2000) && (writeLocation <= 0x3FFF))
+    {
+        //change rom bank
+        unsigned char romBank = writeValue & 0x1F;
+        if(romBank == 0)
+        {
+            romBank = 1;
+        }
+        //most significant bytes get added after the truncation
+        //causing bank 0x21, 0x41 and 0x61 to become inaccessable
+        //i don't know if the rom files account for this, or if i can just ignore that
+        //guess we'll have to find out in the future
+        romBank = romBank | (mapper->rom_msb << 6);
+
+        swap_Rombank(romBank, mapper, RAM_ptr);
+    }
+    else if(mapper->memoryMode == ROM4_RAM32)
+    {
+        if((writeLocation >= 0x4000) && (writeLocation <= 0x5FFF))
+        {
+            //swap ram bank
+            unsigned char ramBank = writeValue & 0x03;
+            swap_Rambank(ramBank, mapper, RAM_ptr);
+        }
+        else if((writeLocation >= 0x0000) && (writeLocation <= 0x1FFF))
+        {
+            //enable or disable ram operations
+            mapper->ram_enabled = ((writeValue & 0x0F) == 0x0A)?0:1;
+        }
+    }
+    else if(mapper->memoryMode == ROM16_RAM8)
+    {
+        if((writeLocation >= 0x4000) && (writeLocation <= 0x5FFF))
+        {
+            //set the two most significant bits of the rom address lines 
+            mapper->rom_msb = writeValue & 0x03;
+        }
+    }
 }

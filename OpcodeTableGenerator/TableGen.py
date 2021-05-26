@@ -212,25 +212,25 @@ def PrintNoPrefix( _opcode ):
         elif z ==2:
             if q == 0:
                 if p == 0:
-                    print("OP_JP_NZ, ADDRESS_16BIT, NONE", end="")
+                    print("OP_JP_NZ, IMMEDIATE_16BIT, NONE", end="")
                 elif p == 1:
-                    print("OP_JP_NC, ADDRESS_16BIT, NONE", end="")
+                    print("OP_JP_NC, IMMEDIATE_16BIT, NONE", end="")
                 elif p == 2:
                     print("OP_LD8, RELATIVE_REG_C, REG_A", end="")
                 elif p == 3:
                     print("OP_LD8, REG_A, RELATIVE_REG_C", end="")
             else:
                 if p == 0:
-                    print("OP_JP_Z, ADDRESS_16BIT, NONE", end="") #NONE = a16
+                    print("OP_JP_Z, IMMEDIATE_16BIT, NONE", end="") #NONE = a16
                 elif p == 1:
-                    print("OP_JP_C, ADDRESS_16BIT, NONE", end="") #NONE = a16
+                    print("OP_JP_C, IMMEDIATE_16BIT, NONE", end="") #NONE = a16
                 elif p == 2:
                     print("OP_LD8, ADDRESS_16BIT, REG_A", end="") #NONE = (a16)
                 elif p == 3:
                     print("OP_LD8, REG_A, ADDRESS_16BIT", end="") #NONE = (a16)
         elif z ==3:
             if y == 0:
-                print("OP_JP, ADDRESS_16BIT, NONE", end="")    #first NONE = a16
+                print("OP_JP, IMMEDIATE_16BIT, NONE", end="")    #first NONE = a16
             elif y == 1:
                 print("OP_CBpref, NONE, NONE", end="")    #CB Prefix
             elif y == 6:
@@ -241,14 +241,14 @@ def PrintNoPrefix( _opcode ):
                 print("OP_ERROR, NONE, NONE", end="") #something went wrong if you get here
         elif z ==4:
             if y < 4:
-                print("OP_CALL_%s, ADDRESS_16BIT, NONE"%(cc[y]), end="")
+                print("OP_CALL_%s, IMMEDIATE_16BIT, NONE"%(cc[y]), end="")
             else:
                 print("OP_ERROR, NONE, NONE", end="")
         elif z ==5:
             if q == 0:
                 print("OP_PUSH, %s, NONE"%(rp2[p]), end="")
             elif p == 0:
-                print("OP_CALL, ADDRESS_16BIT, NONE", end="") #NONE = a16s
+                print("OP_CALL, IMMEDIATE_16BIT, NONE", end="") #NONE = a16s
             else:
                 print("OP_ERROR, NONE, NONE", end="") 
         elif z ==6:

@@ -250,7 +250,7 @@ void OP_CALL(void *value1, void *value2, CPU* CPU_ptr)
 
 	CPU_ptr->PC = callAddress;
 	
-	addCycleCount(CPU_ptr, 3);
+	addCycleCount(CPU_ptr, 5);
 }
 
 //Push return address to stack, and jump to value1 if the carry is set
@@ -259,6 +259,10 @@ void OP_CALL_C(void *value1, void *value2, CPU* CPU_ptr)
 	if(CPU_ptr->FLAGS.Carry)
 	{
 		OP_CALL(value1, value2, CPU_ptr);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
 	}
 }
 
@@ -269,6 +273,10 @@ void OP_CALL_NC(void *value1, void *value2, CPU* CPU_ptr)
 	{
 		OP_CALL(value1, value2, CPU_ptr);
 	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
+	}
 }
 
 //Push return address to stack, and jump to value1 if the zero is not set
@@ -278,6 +286,10 @@ void OP_CALL_NZ(void *value1, void *value2, CPU* CPU_ptr)
 	{
 		OP_CALL(value1, value2, CPU_ptr);
 	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
+	}
 }
 
 //Push return address to stack, and jump to value1 if the zero is set
@@ -286,6 +298,10 @@ void OP_CALL_Z(void *value1, void *value2, CPU* CPU_ptr)
 	if(CPU_ptr->FLAGS.Zero)
 	{
 		OP_CALL(value1, value2, CPU_ptr);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
 	}
 }
 
@@ -482,7 +498,10 @@ void OP_JP(void *value1, void *value2, CPU* CPU_ptr)
 	//I have to check the two bytes are the right way around
 	CPU_ptr->PC = *(unsigned short*)value1;
 
-	addCycleCount(CPU_ptr, 1);
+	if(value1 != &(CPU_ptr->HL))
+	{
+		addCycleCount(CPU_ptr, 3);
+	}
 }
 
 //Jump to Value1 if the carry flag is set
@@ -490,7 +509,12 @@ void OP_JP_C(void *value1, void *value2, CPU* CPU_ptr)
 {
 	if(CPU_ptr->FLAGS.Carry)
 	{
-		OP_JP(value1, value2, CPU_ptr);
+		CPU_ptr->PC = *(unsigned short*)value1;
+		addCycleCount(CPU_ptr, 3);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
 	}
 }
 
@@ -499,7 +523,12 @@ void OP_JP_NC(void *value1, void *value2, CPU* CPU_ptr)
 {
 	if(!CPU_ptr->FLAGS.Carry)
 	{
-		OP_JP(value1, value2, CPU_ptr);
+		CPU_ptr->PC = *(unsigned short*)value1;
+		addCycleCount(CPU_ptr, 3);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
 	}
 }
 
@@ -508,7 +537,12 @@ void OP_JP_NZ(void *value1, void *value2, CPU* CPU_ptr)
 {
 	if(!CPU_ptr->FLAGS.Zero)
 	{
-		OP_JP(value1, value2, CPU_ptr);
+		CPU_ptr->PC = *(unsigned short*)value1;
+		addCycleCount(CPU_ptr, 3);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
 	}
 }
 
@@ -517,7 +551,12 @@ void OP_JP_Z(void *value1, void *value2, CPU* CPU_ptr)
 {
 	if(CPU_ptr->FLAGS.Zero)
 	{
-		OP_JP(value1, value2, CPU_ptr);
+		CPU_ptr->PC = *(unsigned short*)value1;
+		addCycleCount(CPU_ptr, 3);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
 	}
 }
 
@@ -525,7 +564,7 @@ void OP_JP_Z(void *value1, void *value2, CPU* CPU_ptr)
 void OP_JR(void *value1, void *value2, CPU* CPU_ptr)
 {
 	CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(CPU_ptr, 3);
 }
 
 //Jump to PC + value1 if the Carry is set
@@ -533,7 +572,12 @@ void OP_JR_C(void *value1, void *value2, CPU* CPU_ptr)
 {
 	if(CPU_ptr->FLAGS.Carry)
 	{
-		OP_JR(value1, value2, CPU_ptr);
+		CPU_ptr->PC = *(unsigned short*)value1;
+		addCycleCount(CPU_ptr, 3);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
 	}
 }
 
@@ -542,7 +586,12 @@ void OP_JR_NC(void *value1, void *value2, CPU* CPU_ptr)
 {
 	if(!CPU_ptr->FLAGS.Carry)
 	{
-		OP_JR(value1, value2, CPU_ptr);
+		CPU_ptr->PC = *(unsigned short*)value1;
+		addCycleCount(CPU_ptr, 3);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
 	}
 }
 
@@ -551,7 +600,12 @@ void OP_JR_NZ(void *value1, void *value2, CPU* CPU_ptr)
 {
 	if(!CPU_ptr->FLAGS.Zero)
 	{
-		OP_JR(value1, value2, CPU_ptr);
+		CPU_ptr->PC = *(unsigned short*)value1;
+		addCycleCount(CPU_ptr, 3);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
 	}
 }
 
@@ -559,7 +613,12 @@ void OP_JR_NZ(void *value1, void *value2, CPU* CPU_ptr)
 void OP_JR_Z(void *value1, void *value2, CPU* CPU_ptr)
 {	if(CPU_ptr->FLAGS.Carry)
 	{
-		OP_JR(value1, value2, CPU_ptr);
+		CPU_ptr->PC = *(unsigned short*)value1;
+		addCycleCount(CPU_ptr, 3);
+	}
+	else
+	{
+		addCycleCount(CPU_ptr, 2);
 	}
 }
 
@@ -579,10 +638,25 @@ void OP_LD8(void *value1, void *value2, CPU* CPU_ptr)
 {
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
+	addCycleCount(CPU_ptr, 1);
 	
+	//see if the write is being made to ROM
+	if(((CPU_ptr->RAM_ref - val1) >= RAM_LOCATION_ROM_0_START) &&
+		((CPU_ptr->RAM_ref - val1) <= RAM_LOCATION_ROM_SWAPPABLE_END))
+	{
+		write_to_rom(val1, CPU_ptr->MAPPER_ref, CPU_ptr->RAM_ref);
+		return;
+	}
+	//check if the write is to cartridge ram while its dissabled
+	else if(((CPU_ptr->RAM_ref - val1) >= RAM_LOCATION_RAM_SWAPPABLE_START) &&
+		((CPU_ptr->RAM_ref - val1) <= RAM_LOCATION_RAM_SWAPPABLE_END) &&
+		!CPU_ptr->MAPPER_ref->ram_enabled)
+	{
+		return;
+	}
+
 	*val1 = *val2;
 
-	addCycleCount(CPU_ptr, 1);
 }
 
 //Load SP + r8 into HL

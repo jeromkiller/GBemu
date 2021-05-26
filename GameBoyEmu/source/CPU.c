@@ -6,7 +6,7 @@
 #include "RAM.h"
 
 //initiate CPU
-CPU* CPU_init(RAM* RAM_ptr, Memory_Mapper* Mapper_ptr);
+CPU* CPU_init(RAM* RAM_ptr, Memory_Mapper* Mapper_ptr)
 {
 	//check if the CPU is already inited
 	if(RAM_ptr == NULL)

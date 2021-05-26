@@ -19,14 +19,10 @@ int main()
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
-	GameboyCPU->A = 0x40;
-	GameboyCPU->B = 0x50;
-
-	printCPU(GameboyCPU);
-
-	OP_SUB(&(GameboyCPU->A), &(GameboyCPU->B), GameboyCPU);
-
-	printCPU(GameboyCPU);
+	while(1)
+	{
+		performNextOpcode(GameboyCPU);
+	}	
 
 ///////////////////////////////////////////////////////////////////////
 
