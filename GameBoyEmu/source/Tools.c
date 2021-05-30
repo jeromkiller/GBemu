@@ -76,7 +76,7 @@ void printStack(CPU* CPU_ptr)
 		printf("== stack top ==\n");
 	}
 
-	for(; location > CPU_ptr->SP; location -= 2)
+	for(; location >= CPU_ptr->SP; location -= 2)
 	{
 		printHex16bit(location);
 		printf("-> 0x");

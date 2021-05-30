@@ -5,6 +5,7 @@
 #include "RAM.h"
 #include "RomMapper.h"
 #include "Opcodes.h"
+#include "SerialPrinter.h"
 
 #include "Tools.h"
 //#include "OpcodeLookupTable.h"
@@ -19,9 +20,14 @@ int main()
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
-	while(1)
+	while(GameboyCPU->status == RUNNING)
 	{
 		performNextOpcode(GameboyCPU);
+		perform_serialOperation(GameboyRAM);
+//		printf("PC: ");
+//		printHex16bit(GameboyCPU->PC);
+//		printf("\n");
+		fflush(stdout);
 	}	
 
 ///////////////////////////////////////////////////////////////////////

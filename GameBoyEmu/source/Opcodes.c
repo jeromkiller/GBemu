@@ -4,6 +4,8 @@
 
 #include "OpcodeLookupTable.h"
 
+#include "tools.h"
+
 void performNextOpcode(CPU* CPU_ptr)
 {
 	unsigned char opcode = *Read_PC8(CPU_ptr);
@@ -130,15 +132,17 @@ void addCycleCount(CPU* CPU_ptr, int cycles)
 
 void PUSH_Value(unsigned short value, CPU* CPU_ptr)
 {
+	CPU_ptr->SP -= 2;
 	unsigned short* StackLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->SP);
 	*StackLocation = value;
-	CPU_ptr->SP -= 2;
+
+//	printStack(CPU_ptr);
 }
 
 unsigned short POP_Value(CPU* CPU_ptr)
 {
-	CPU_ptr->SP += 2;
 	unsigned short* StackLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->SP);
+	CPU_ptr->SP += 2;
 	return *StackLocation;
 }
 
@@ -244,7 +248,7 @@ void OP_AND(void *value1, void *value2, CPU* CPU_ptr)
 void OP_CALL(void *value1, void *value2, CPU* CPU_ptr)
 {
 	unsigned short callAddress = *(unsigned short*)value1;
-	unsigned short returnValue = CPU_ptr->PC + 1;
+	unsigned short returnValue = CPU_ptr->PC;// + 1;
 
 	PUSH_Value(returnValue, CPU_ptr);
 
@@ -333,8 +337,8 @@ void OP_CP(void *value1, void *value2, CPU* CPU_ptr)
 
 	CPU_ptr->FLAGS.Zero = *val1 == *val2;
 	CPU_ptr->FLAGS.Subtract = 1;
-	CPU_ptr->FLAGS.HCarry = !((*val1 & 0x0f) < (*val2 & 0x0f));
-	CPU_ptr->FLAGS.Carry = !(*val1 < *val2);
+	CPU_ptr->FLAGS.HCarry = ((*val1 & 0x0f) < (*val2 & 0x0f));
+	CPU_ptr->FLAGS.Carry = (*val1 < *val2);
 
 	addCycleCount(CPU_ptr, 1);
 }
@@ -412,7 +416,7 @@ void OP_DEC16(void *value1, void *value2, CPU* CPU_ptr)
 void OP_DEC8(void *value1, void *value2, CPU* CPU_ptr)
 {
 	unsigned char* val1 = (unsigned char*)value1;
-	
+
 	(*val1)--;
 
 	CPU_ptr->FLAGS.Zero = *val1?0:1;
@@ -448,7 +452,7 @@ void OP_EI(void *value1, void *value2, CPU* CPU_ptr)
 }
 void OP_ERROR(void *value1, void *value2, CPU* CPU_ptr)
 {
-	printf("Illegal opcode encountered\nSomething has probably gone wrong in the emulator");
+	printf("Error: illegalOpcode\n");
 }
 
 //Halt the cpu untill an interrupt occurs
@@ -473,7 +477,7 @@ void OP_INC16(void *value1, void *value2, CPU* CPU_ptr)
 void OP_INC8(void *value1, void *value2, CPU* CPU_ptr)
 {
 	unsigned char* val1 = (unsigned char*)value1;
-	
+
 	(*val1)++;
 
 	CPU_ptr->FLAGS.Zero = *val1?0:1;
@@ -572,7 +576,7 @@ void OP_JR_C(void *value1, void *value2, CPU* CPU_ptr)
 {
 	if(CPU_ptr->FLAGS.Carry)
 	{
-		CPU_ptr->PC = *(unsigned short*)value1;
+		CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
 		addCycleCount(CPU_ptr, 3);
 	}
 	else
@@ -586,7 +590,7 @@ void OP_JR_NC(void *value1, void *value2, CPU* CPU_ptr)
 {
 	if(!CPU_ptr->FLAGS.Carry)
 	{
-		CPU_ptr->PC = *(unsigned short*)value1;
+		CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
 		addCycleCount(CPU_ptr, 3);
 	}
 	else
@@ -600,7 +604,7 @@ void OP_JR_NZ(void *value1, void *value2, CPU* CPU_ptr)
 {
 	if(!CPU_ptr->FLAGS.Zero)
 	{
-		CPU_ptr->PC = *(unsigned short*)value1;
+		CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
 		addCycleCount(CPU_ptr, 3);
 	}
 	else
@@ -611,9 +615,10 @@ void OP_JR_NZ(void *value1, void *value2, CPU* CPU_ptr)
 
 //Jump to PC + value1 if the Zero is set
 void OP_JR_Z(void *value1, void *value2, CPU* CPU_ptr)
-{	if(CPU_ptr->FLAGS.Carry)
+{	
+	if(CPU_ptr->FLAGS.Zero)
 	{
-		CPU_ptr->PC = *(unsigned short*)value1;
+		CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
 		addCycleCount(CPU_ptr, 3);
 	}
 	else
@@ -878,9 +883,9 @@ void OP_SBC(void *value1, void *value2, CPU* CPU_ptr)
 	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
 	CPU_ptr->FLAGS.Subtract = 1;
 	//check a carry took place from the second nibble to the first
-	CPU_ptr->FLAGS.HCarry = !((*val1 & 0x0f) < ((*val2 - 1 + CPU_ptr->FLAGS.Carry) & 0x0f));
+	CPU_ptr->FLAGS.HCarry = ((*val1 & 0x0f) < ((*val2 - 1 + CPU_ptr->FLAGS.Carry) & 0x0f));
 	//check if a carry took place into the second nibble
-	CPU_ptr->FLAGS.Carry = !(*val1 < (*val2 - 1 + CPU_ptr->FLAGS.Carry));
+	CPU_ptr->FLAGS.Carry = (*val1 < (*val2 - 1 + CPU_ptr->FLAGS.Carry));
 
 	addCycleCount(CPU_ptr, 1);
 }
@@ -918,9 +923,9 @@ void OP_SUB(void *value1, void *value2, CPU* CPU_ptr)
 	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
 	CPU_ptr->FLAGS.Subtract = 1;
 	//check a carry took place from the second nibble to the first
-	CPU_ptr->FLAGS.HCarry = !((*val1 & 0x0f) < (*val2 & 0x0f));
+	CPU_ptr->FLAGS.HCarry = ((*val1 & 0x0f) < (*val2 & 0x0f));
 	//check if a carry took place into the second nibble
-	CPU_ptr->FLAGS.Carry = !(*val1 < *val2);
+	CPU_ptr->FLAGS.Carry = (*val1 < *val2);
 
 	*val1 = result;
 

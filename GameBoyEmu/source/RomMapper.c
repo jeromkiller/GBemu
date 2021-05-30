@@ -326,7 +326,7 @@ Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank)
     Data_bank* bank = startBank;
     while(NULL != bank)
     {
-        if(bank->bankId != bankNumber)
+        if(bank->bankId == bankNumber)
         {
             break;
         }
@@ -335,7 +335,7 @@ Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank)
 
     if(NULL == bank)
     {
-        printf("Error: could not find bank %hhu", bankNumber);
+        printf("Error: could not find bank %hhu\n", bankNumber);
     }
 
     return bank;

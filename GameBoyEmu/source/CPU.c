@@ -24,7 +24,13 @@ CPU* CPU_init(RAM* RAM_ptr, Memory_Mapper* Mapper_ptr)
 	//copy the ram refference
 	newCPU->RAM_ref = RAM_ptr;
 	newCPU->MAPPER_ref = Mapper_ptr;
-	//set the Program Counter to location 0x0100
+
+	//set the starput values
+	newCPU->AF = 0x01B0;
+	newCPU->BC = 0x0013;
+	newCPU->DE = 0x00D8;
+	newCPU->HL = 0x014D;
+	
 	newCPU->PC = 0x0100;
 	newCPU->SP = 0xFFFE;
 

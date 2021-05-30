@@ -252,7 +252,7 @@ def PrintNoPrefix( _opcode ):
             else:
                 print("OP_ERROR, NONE, NONE", end="") 
         elif z ==6:
-            print("%s, IMMEDIATE_8BIT, NONE"%(alu[y]), end="")
+            print("%s, REG_A, IMMEDIATE_8BIT"%(alu[y]), end="")
         elif z ==7:
             print("OP_RST, RESET_%s, NONE"%(y), end="") #the numarical value is an interger, not a pointer. look into this.
 
