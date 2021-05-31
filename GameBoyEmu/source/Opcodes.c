@@ -420,7 +420,7 @@ void OP_DEC8(void *value1, void *value2, CPU* CPU_ptr)
 	(*val1)--;
 
 	CPU_ptr->FLAGS.Zero = *val1?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
+	CPU_ptr->FLAGS.Subtract = 1;
 	//if a borrow happend from the second nibble, then the fisrt nibble will be all ones
 	CPU_ptr->FLAGS.HCarry = (*val1 & 0x0f) == 0xf;
 
@@ -646,15 +646,15 @@ void OP_LD8(void *value1, void *value2, CPU* CPU_ptr)
 	addCycleCount(CPU_ptr, 1);
 	
 	//see if the write is being made to ROM
-	if(((CPU_ptr->RAM_ref - val1) >= RAM_LOCATION_ROM_0_START) &&
-		((CPU_ptr->RAM_ref - val1) <= RAM_LOCATION_ROM_SWAPPABLE_END))
+	if(((val1 - CPU_ptr->RAM_ref) >= RAM_LOCATION_ROM_0_START) &&
+		((val1 - CPU_ptr->RAM_ref) <= RAM_LOCATION_ROM_SWAPPABLE_END))
 	{
 		write_to_rom(val1, CPU_ptr->MAPPER_ref, CPU_ptr->RAM_ref);
 		return;
 	}
 	//check if the write is to cartridge ram while its dissabled
-	else if(((CPU_ptr->RAM_ref - val1) >= RAM_LOCATION_RAM_SWAPPABLE_START) &&
-		((CPU_ptr->RAM_ref - val1) <= RAM_LOCATION_RAM_SWAPPABLE_END) &&
+	else if(((val1 - CPU_ptr->RAM_ref) >= RAM_LOCATION_RAM_SWAPPABLE_START) &&
+		((val1 - CPU_ptr->RAM_ref) <= RAM_LOCATION_RAM_SWAPPABLE_END) &&
 		!CPU_ptr->MAPPER_ref->ram_enabled)
 	{
 		return;

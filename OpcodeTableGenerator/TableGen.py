@@ -206,7 +206,7 @@ def PrintNoPrefix( _opcode ):
                 elif p == 1:
                     print("OP_RETI, NONE, NONE", end="")
                 elif p == 2:
-                    print("OP_JP, ADDRESS_REG_HL, NONE", end="")
+                    print("OP_JP, REG_HL, NONE", end="")
                 elif p == 3:
                     print("OP_LD16, REG_SP, REG_HL", end="")
         elif z ==2:

@@ -236,7 +236,7 @@ Instruction* getNormalOpcode(unsigned char opcode)
         { OP_AND, REG_A, IMMEDIATE_8BIT },
         { OP_RST, RESET_4, NONE },
         { OP_ADD16, REG_SP, RELATIVE_8BIT },
-        { OP_JP, ADDRESS_REG_HL, NONE },
+        { OP_JP, REG_HL, NONE },
         { OP_LD8, ADDRESS_16BIT, REG_A },
         { OP_ERROR, NONE, NONE },
         { OP_ERROR, NONE, NONE },

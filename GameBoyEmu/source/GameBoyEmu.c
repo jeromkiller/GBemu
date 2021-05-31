@@ -16,6 +16,11 @@ int main()
 	//startup
 	RAM* GameboyRAM = RAM_init();
 	Memory_Mapper* mapper = Mapper_init(ROM_Path, GameboyRAM);
+	if(NULL == mapper)
+	{
+		return 0;
+	}
+	
 	CPU* GameboyCPU = CPU_init(GameboyRAM, mapper);
 
 ///////////////////////////////////////////////////////////////////////

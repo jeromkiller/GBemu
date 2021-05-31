@@ -373,7 +373,7 @@ void write_to_rom(unsigned char* valueLocation, Memory_Mapper* mapper, RAM* RAM_
     }
 }
 
-void write_to_MBC1(unsigned char writeValue, unsigned char writeLocation, Memory_Mapper* mapper, RAM* RAM_ptr)
+void write_to_MBC1(unsigned char writeValue, unsigned short writeLocation, Memory_Mapper* mapper, RAM* RAM_ptr)
 {
     //call the right function depending on where was written to
     if((writeLocation >= 0x6000) && (writeLocation <= 0x7FFF))

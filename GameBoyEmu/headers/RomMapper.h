@@ -101,5 +101,5 @@ Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank);
 void write_to_rom(unsigned char* valueLocation, Memory_Mapper* mapper, RAM* RAM_ptr);
 
 //handle the write as a MBC1 controller
-void write_to_MBC1(unsigned char writeValue, unsigned char writeLocation, Memory_Mapper* mapper, RAM* RAM_ptr);
+void write_to_MBC1(unsigned char writeValue, unsigned short writeLocation, Memory_Mapper* mapper, RAM* RAM_ptr);
 #endif //_ROM_MAPPER
