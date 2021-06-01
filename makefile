@@ -1,5 +1,6 @@
 #name of the executable
 FILENAME = gameBoy
+TESTPROGRAM = gameBoyTest
 
 #File Directories
 #Root dir where sub dirs are located
@@ -13,7 +14,7 @@ ODIR=$(RDIR)/.obs
 
 #compiler and flags to use
 CC=gcc
-CFLAGS= -Wall -g -I $(HDIR)
+CFLAGS:= -Wall -g -I $(HDIR)
 
 #File paths
 SRCS := $(wildcard $(SDIR)/*.c)
@@ -22,20 +23,36 @@ OBJS := $(addprefix $(ODIR)/, $(patsubst %.c, %.o, $(notdir $(SRCS))))
 
 #build .o files
 $(ODIR)/%.o : $(SDIR)/%.c $(HEAD)
-	$(CC) -o $@ -c $< $(CFLAGS)
+	@echo building object: $@;
+	@$(CC) -o $@ -c $< $(CFLAGS)
 
 #build project 
-$(FILENAME) : $(OBJS)
-	$(CC) -o $@ $(OBJS) $(CFLAGS)
+$(FILENAME) : $(filter-out GameBoyEmu/.obs/CPU_Test.o, $(OBJS))
+	@echo building executable: $@;
+	@$(CC) -o $@ $^ $(CFLAGS)
 
 #before objects can be built, the object folder has to be created
 $(OBJS): | $(ODIR)
 
 $(ODIR):
-	mkdir $(ODIR)
+	@mkdir $(ODIR)
 
 #make clean
 .PHONY : clean
 clean :
-	rm -r $(ODIR)
-	rm $(FILENAME)
+	@echo cleaning files
+	@rm -r $(ODIR)
+	@rm $(FILENAME)
+
+#build the version of the program
+$(TESTPROGRAM) : $(filter-out GameBoyEmu/.obs/GameBoyEmu.o, $(OBJS))
+	@echo building executable: $@;
+	@$(CC) -o $@ $^ $(CFLAGS)
+
+#make tests
+#build and run the tests automaticaly
+#cleans itself up afterwards
+.PHONY : test
+test : $(TESTPROGRAM)
+	@./$(TESTPROGRAM) ./.roms/testRoms/01-special.gb
+	@rm $(TESTPROGRAM)
