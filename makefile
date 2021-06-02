@@ -21,13 +21,17 @@ SRCS := $(wildcard $(SDIR)/*.c)
 HEAD := $(wildcard $(HDIR)/*.h)
 OBJS := $(addprefix $(ODIR)/, $(patsubst %.c, %.o, $(notdir $(SRCS))))
 
+#excludes
+MAINEXCLUDES:=$(ODIR)/CPU_Test.o
+TESTEXCLUDES:=$(ODIR)/GameBoyEmu.o
+
 #build .o files
-$(ODIR)/%.o : $(SDIR)/%.c $(HEAD)
+$(ODIR)/%.o : $(SDIR)/%.c $(HEAD) 
 	@echo building object: $@;
 	@$(CC) -o $@ -c $< $(CFLAGS)
 
 #build project 
-$(FILENAME) : $(filter-out GameBoyEmu/.obs/CPU_Test.o, $(OBJS))
+$(FILENAME) : $(filter-out $(MAINEXCLUDES), $(OBJS))
 	@echo building executable: $@;
 	@$(CC) -o $@ $^ $(CFLAGS)
 
@@ -45,7 +49,7 @@ clean :
 	@rm $(FILENAME)
 
 #build the version of the program
-$(TESTPROGRAM) : $(filter-out GameBoyEmu/.obs/GameBoyEmu.o, $(OBJS))
+$(TESTPROGRAM) : $(filter-out $(TESTEXCLUDES), $(OBJS))
 	@echo building executable: $@;
 	@$(CC) -o $@ $^ $(CFLAGS)
 
