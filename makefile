@@ -58,5 +58,5 @@ $(TESTPROGRAM) : $(filter-out $(TESTEXCLUDES), $(OBJS))
 #cleans itself up afterwards
 .PHONY : test
 test : $(TESTPROGRAM)
-	@./$(TESTPROGRAM) ./.roms/testRoms/01-special.gb
+	@python3 ./Testing/TestScript.py
 	@rm $(TESTPROGRAM)
