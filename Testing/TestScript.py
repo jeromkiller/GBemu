@@ -68,20 +68,22 @@ def printResults(results):
     numTests = len(results)
     numPassed = 0
     table = PrettyTable()
+    table.field_names = ["Test", "Result", "Point of failure"]
 
     for run in results:
         passed = "Passed" in run
-        columnData = []
+        rowData = []
 
         if passed:
             numPassed = numPassed + 1
-            columnData.append(bcolors.OKGREEN + "Passed :)" + bcolors.ENDC)
-            columnData.append("")
+            table.add_row([run[0], 
+            bcolors.OKGREEN + "Passed :)" + bcolors.ENDC, ""])
         else:
-            columnData.append(bcolors.FAIL + "Failed :(" + bcolors.ENDC)
-            columnData.append(run[len(run) -2][-8:])
+            table.add_row([run[0], 
+            bcolors.FAIL + "Failed :(" + bcolors.ENDC,
+            run[len(run) -2][-9:]])
 
-        table.add_column(run[0], columnData)
+        
 
     print(table)
 
