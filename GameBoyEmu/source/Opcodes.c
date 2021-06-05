@@ -362,6 +362,7 @@ void OP_DAA(void *value1, void *value2, CPU* CPU_ptr)
 		if(CPU_ptr->FLAGS.Carry)
 		{
 			regA_value -= 0x60;
+			CPU_ptr->FLAGS.Carry = 1;
 		}
 		if(CPU_ptr->FLAGS.HCarry)
 		{
@@ -370,12 +371,12 @@ void OP_DAA(void *value1, void *value2, CPU* CPU_ptr)
 	}
 	else	//last opperation was an addition
 	{
-		if((CPU_ptr->FLAGS.Carry) || (CPU_ptr->A > 0x99))
+		if((CPU_ptr->FLAGS.Carry) || (regA_value > 0x99))
 		{
 			regA_value += 0x60;
 			CPU_ptr->FLAGS.Carry = 1;
 		}
-		if((CPU_ptr->FLAGS.HCarry) || ((CPU_ptr->A & 0x0f) > 0x09))
+		if((CPU_ptr->FLAGS.HCarry) || ((regA_value & 0x0f) > 0x09))
 		{
 			regA_value += 0x06;
 		}
@@ -383,7 +384,7 @@ void OP_DAA(void *value1, void *value2, CPU* CPU_ptr)
 
 	//update other flags
 	CPU_ptr->FLAGS.Zero = regA_value ? 0:1;
-	CPU_ptr->H = 0;
+	CPU_ptr->FLAGS.HCarry = 0;
 
 	CPU_ptr->A = regA_value;
 
