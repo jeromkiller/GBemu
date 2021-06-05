@@ -12,7 +12,7 @@
 
 int main()
 {
-	static char ROM_Path[] = {"./.roms/testRoms/07-jr,jp,call,ret,rst.gb\0"};
+	static char ROM_Path[] = {"./.roms/testRoms/10-bit ops.gb\0"};
 	//startup
 	RAM* GameboyRAM = RAM_init();
 	Memory_Mapper* mapper = Mapper_init(ROM_Path, GameboyRAM);

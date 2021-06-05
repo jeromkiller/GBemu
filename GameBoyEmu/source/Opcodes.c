@@ -1128,7 +1128,7 @@ void OP_RES(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
 void OP_SET(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
 {
 	unsigned char mask = 1 << bit;
-	*reg = *reg & mask;
+	*reg = *reg | mask;
 
 	addCycleCount(CPU_ptr, 2);
 }
