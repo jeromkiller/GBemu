@@ -160,7 +160,7 @@ void OP_ADC(void *value1, void *value2, CPU* CPU_ptr)
 	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
 	CPU_ptr->FLAGS.Subtract = 0;
 	//check if the low nibbles added together cause an overflow to bit 4
-	CPU_ptr->FLAGS.HCarry = (((*val1 & 0xf) + ((*val2 + carry) & 0xf)) & 0x10)? 1:0;
+	CPU_ptr->FLAGS.HCarry = (((*val1 & 0xf) + ((*val2 & 0xf) + carry)) & 0x10)? 1:0;
 	//check if the result rolled over into the second byte
 	CPU_ptr->FLAGS.Carry = (result & 0x0100)? 1:0;
 
@@ -355,49 +355,37 @@ void OP_CPL(void *value1, void *value2, CPU* CPU_ptr)
 }
 void OP_DAA(void *value1, void *value2, CPU* CPU_ptr)
 {
-	unsigned char lowNibble = CPU_ptr->A & 0x0F;
-	unsigned char highNibble = CPU_ptr->A & 0xF0;
-	unsigned char additionValue = 0;
+	unsigned char regA_value = CPU_ptr->A;
 
 	if(CPU_ptr->FLAGS.Subtract)	//last opperation was subctraction
 	{
-		if(lowNibble >= 0x06 && CPU_ptr->FLAGS.HCarry 
-		&& highNibble <= 0x80 && !CPU_ptr->FLAGS.Carry)
+		if(CPU_ptr->FLAGS.Carry)
 		{
-			additionValue = 0xFA;
+			regA_value -= 0x60;
 		}
-		else if(lowNibble <= 0x09 && !CPU_ptr->FLAGS.HCarry
-		&& highNibble >= 0x70 && CPU_ptr->FLAGS.Carry)
+		if(CPU_ptr->FLAGS.HCarry)
 		{
-			additionValue = 0xA0;
-			CPU_ptr->FLAGS.Carry = 1;
-		}
-		else if(lowNibble >= 0x06 && CPU_ptr->FLAGS.HCarry
-		&& highNibble >= 0x60 && CPU_ptr->FLAGS.Carry)
-		{
-			additionValue = 0x9A;
-			CPU_ptr->FLAGS.Carry = 1;
+			regA_value -= 0x06;
 		}
 	}
 	else	//last opperation was an addition
 	{
-		//check low nibble
-		if((lowNibble >= 0x0A) ||
-		((lowNibble <= 0x03) && CPU_ptr->FLAGS.HCarry))
+		if((CPU_ptr->FLAGS.Carry) || (CPU_ptr->A > 0x99))
 		{
-			additionValue |= 0x06;
-		} 
-		if((highNibble >= 0xA0) ||
-		((highNibble >= 0x90) && (lowNibble >= 0x0A)) ||
-		((highNibble <= 0x20) && CPU_ptr->FLAGS.Carry) ||
-		((highNibble <= 0x30) && (lowNibble <= 0x03) && CPU_ptr->FLAGS.HCarry))
-		{
-			additionValue |= 0x60;
+			regA_value += 0x60;
 			CPU_ptr->FLAGS.Carry = 1;
+		}
+		if((CPU_ptr->FLAGS.HCarry) || ((CPU_ptr->A & 0x0f) > 0x09))
+		{
+			regA_value += 0x06;
 		}
 	}
 
-	CPU_ptr->A += additionValue;
+	//update other flags
+	CPU_ptr->FLAGS.Zero = regA_value ? 0:1;
+	CPU_ptr->H = 0;
+
+	CPU_ptr->A = regA_value;
 
 	addCycleCount(CPU_ptr, 1);
 }
@@ -717,6 +705,13 @@ void OP_POP(void *value1, void *value2, CPU* CPU_ptr)
 
 	*Register = POP_Value(CPU_ptr);
 
+	//there is a chance the empty bit fields of the flag register
+	//get filled when popping a value into AF
+	if(Register == &(CPU_ptr->AF))
+	{
+		CPU_ptr->FLAGS.null = 0;
+	}
+
 	addCycleCount(CPU_ptr, 3);
 }
 
@@ -790,7 +785,7 @@ void OP_RLA(void *value1, void *value2, CPU* CPU_ptr)
 		shifted = shifted | 0x01; 
 	}
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Zero = 0; //shifted?0:1;
 	CPU_ptr->FLAGS.Subtract = 0;
 	CPU_ptr->FLAGS.HCarry = 0;
 	CPU_ptr->FLAGS.Carry = outbit?1:0;
@@ -811,7 +806,7 @@ void OP_RLCA(void *value1, void *value2, CPU* CPU_ptr)
 		shifted = shifted | 0x01;
 	}
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Zero = 0;//shifted?0:1;
 	CPU_ptr->FLAGS.Subtract = 0;
 	CPU_ptr->FLAGS.HCarry = 0;
 	CPU_ptr->FLAGS.Carry = outbit?1:0;
@@ -832,7 +827,7 @@ void OP_RRA(void *value1, void *value2, CPU* CPU_ptr)
 		shifted = shifted | 0x80; 
 	}
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Zero = 0; //shifted?0:1;
 	CPU_ptr->FLAGS.Subtract = 0;
 	CPU_ptr->FLAGS.HCarry = 0;
 	CPU_ptr->FLAGS.Carry = outbit?1:0;
@@ -853,7 +848,7 @@ void OP_RRCA(void *value1, void *value2, CPU* CPU_ptr)
 		shifted = shifted | 0x80;
 	}
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
+	CPU_ptr->FLAGS.Zero = 0; //shifted?0:1;
 	CPU_ptr->FLAGS.Subtract = 0;
 	CPU_ptr->FLAGS.HCarry = 0;
 	CPU_ptr->FLAGS.Carry = outbit?1:0;
@@ -875,17 +870,20 @@ void OP_SBC(void *value1, void *value2, CPU* CPU_ptr)
 {
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
+	unsigned char carry = CPU_ptr->FLAGS.Carry?1:0;
 
 	//reduce the result by 1 if the carry flag isn't set
-	unsigned short result = *val1 - (*val2 - 1 + CPU_ptr->FLAGS.Carry);
+	unsigned short result = *val1 - (*val2 + carry);
 
-		//check if the first byte of the result is zero
+	//check if the first byte of the result is zero
 	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
 	CPU_ptr->FLAGS.Subtract = 1;
 	//check a carry took place from the second nibble to the first
-	CPU_ptr->FLAGS.HCarry = ((*val1 & 0x0f) < ((*val2 - 1 + CPU_ptr->FLAGS.Carry) & 0x0f));
+	CPU_ptr->FLAGS.HCarry = ((*val1 & 0x0f) < ((*val2 & 0x0f) + carry));
 	//check if a carry took place into the second nibble
-	CPU_ptr->FLAGS.Carry = (*val1 < (*val2 - 1 + CPU_ptr->FLAGS.Carry));
+	CPU_ptr->FLAGS.Carry = (*val1 < (*val2 + carry));
+
+	*val1 = result;
 
 	addCycleCount(CPU_ptr, 1);
 }

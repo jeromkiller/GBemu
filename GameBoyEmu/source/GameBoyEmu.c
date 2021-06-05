@@ -12,7 +12,7 @@
 
 int main()
 {
-	static char ROM_Path[] = {"./.roms/testRoms/cpu_instrs.gb\0"};
+	static char ROM_Path[] = {"./.roms/testRoms/09-op r,r.gb\0"};
 	//startup
 	RAM* GameboyRAM = RAM_init();
 	Memory_Mapper* mapper = Mapper_init(ROM_Path, GameboyRAM);
@@ -25,7 +25,7 @@ int main()
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
-	while(GameboyCPU->status == RUNNING)
+	while(1)
 	{
 		performNextOpcode(GameboyCPU);
 		perform_serialOperation(GameboyRAM);
