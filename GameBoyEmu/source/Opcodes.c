@@ -862,6 +862,8 @@ void OP_RST(void *value1, void *value2, CPU* CPU_ptr)
 {
 	unsigned short resetVector = (unsigned char*)value1 - CPU_ptr->RAM_ref;
 
+	PUSH_Value(CPU_ptr->PC, CPU_ptr);
+
 	CPU_ptr->PC = resetVector;
 }
 
