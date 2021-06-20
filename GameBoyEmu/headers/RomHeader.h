@@ -1,5 +1,4 @@
-#ifndef _ROM_HEADER_H
-#define _ROM_HEADER_H
+#pragma once
 
 //defines
 #define ROM_START 0x0100
@@ -20,5 +19,3 @@
 #define ROM_HEADER_COMPLEMENT_CHECK 0x014D
 #define ROM_HEADER_CHECKSUM_HIGH 0x014E
 #define ROM_HEADER_CHECKSUM_LOW 0x014F
-
-#endif //_ROM_HEADER_H

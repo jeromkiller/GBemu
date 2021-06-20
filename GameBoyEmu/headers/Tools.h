@@ -1,5 +1,4 @@
-#ifndef _Tools_h
-#define _Tools_h
+#pragma once
 //Include Tools.h if you want to use debug functions in your file
 
 //includes
@@ -7,15 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "CPU.h"
-//defines
-
-//enums
-
-//global variables
-
-//function prototypes
-//prints a single opcode
+#include "GameBoy.h"
 
 //prints an 8 bit value in binary
 void printBinary(char value);
@@ -30,9 +21,4 @@ void printHex16bit(short value);
 void printCPU(CPU* CPU_ptr);
 
 //dumps the last 10 entries on the stack
-void printStack(CPU* CPU_ptr);
-
-//test
-void test(void *value1, void *value2);
-
-#endif // !Tools
+void printStack(GameBoy_Instance* GB);

@@ -4,9 +4,42 @@
 #include <string.h>
 #include <stdlib.h>
 
+//local functions
+//build the mapper itself
+Memory_Mapper* build_mapper(FILE* romFile, RAM* RAM_ptr);
+//get the memory controller type from ram
+Memory_controller_type getControllerTypeFromRam(RAM* RAM_ptr);
+//get the ROM size and number of banks from ram
+void getRomSizeFromData(unsigned char* num_banks, size_t* ram_size, RAM* RAM_ptr);
+//get the RAM size and number of banks from ram
+void getRamSizeFromData(unsigned char* num_banks, size_t* ram_size, RAM* RAM_ptr);
+//allocate and fill the rom banks
+Data_bank* build_RomBanks(FILE* RomFile, unsigned char num_banks);
+//create a single ram bank
+Data_bank* create_RomBank(FILE* RomFile, unsigned int bankId);
+//allocate and fill the rom banks
+Data_bank* build_RamBanks(unsigned char num_banks);
+//create a single (full size) ram bank
+Data_bank* create_RamBank(unsigned int bankId);
+//copy the contents of a rombank to ram
+void swap_Rombank(unsigned char newBankNumber, Memory_Mapper* mapper, RAM* RAM_ptr);
+//copy the contents of active ram into the old ram bank, and then swap a new bank back in
+void swap_Rambank(unsigned char newBankNumber, Memory_Mapper* mapper, RAM* RAM_ptr);
+//find a bank by id, returns NULL if bank could not be found
+Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank);
+//handle the write as a MBC1 controller
+void write_to_MBC1(unsigned char writeValue, unsigned short writeLocation, Memory_Mapper* mapper, RAM* RAM_ptr);
+
 //this function will probably have to change when saving functionality
 Memory_Mapper* Mapper_init(char* romPath, RAM* RAM_ptr)
 {
+	//check if the CPU is already inited
+	if(RAM_ptr == NULL)
+	{
+		printf("Mapper_init: Please Initialize Ram before the memory mapper\n");
+		return NULL;
+	}
+
     //open the rom file,
     FILE* romFile = fopen(romPath, "r");
     if(NULL == romFile)

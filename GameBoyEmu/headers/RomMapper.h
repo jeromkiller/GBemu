@@ -1,5 +1,4 @@
-#ifndef _ROM_MAPPER_H
-#define _ROM_MAPPER_H
+#pragma once
 
 //includes
 #include "RAM.h"
@@ -61,45 +60,8 @@ Memory_Mapper* Mapper_init(char* romPath, RAM* RAM_ptr);
 //get rid of the rom mapper, and free the allocated 
 void Mapper_dispose(Memory_Mapper* mapper);
 
-//build the mapper itself
-Memory_Mapper* build_mapper(FILE* romFile, RAM* RAM_ptr);
-
 //use the gameboy logo as a checksum
 int check_gameboyLogo(RAM* RAM_ptr);
 
-//get the memory controller type from ram
-Memory_controller_type getControllerTypeFromRam(RAM* RAM_ptr);
-
-//get the ROM size and number of banks from ram
-void getRomSizeFromData(unsigned char* num_banks, size_t* ram_size, RAM* RAM_ptr);
-
-//get the RAM size and number of banks from ram
-void getRamSizeFromData(unsigned char* num_banks, size_t* ram_size, RAM* RAM_ptr);
-
-//allocate and fill the rom banks
-Data_bank* build_RomBanks(FILE* RomFile, unsigned char num_banks);
-
-//create a single ram bank
-Data_bank* create_RomBank(FILE* RomFile, unsigned int bankId);
-
-//allocate and fill the rom banks
-Data_bank* build_RamBanks(unsigned char num_banks);
-
-//create a single (full size) ram bank
-Data_bank* create_RamBank(unsigned int bankId);
-
-//copy the contents of a rombank to ram
-void swap_Rombank(unsigned char newBankNumber, Memory_Mapper* mapper, RAM* RAM_ptr);
-
-//copy the contents of active ram into the old ram bank, and then swap a new bank back in
-void swap_Rambank(unsigned char newBankNumber, Memory_Mapper* mapper, RAM* RAM_ptr);
-
-//find a bank by id, returns NULL if bank could not be found
-Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank);
-
 //functions for writing to the rom bank
 void write_to_rom(unsigned char* valueLocation, Memory_Mapper* mapper, RAM* RAM_ptr);
-
-//handle the write as a MBC1 controller
-void write_to_MBC1(unsigned char writeValue, unsigned short writeLocation, Memory_Mapper* mapper, RAM* RAM_ptr);
-#endif //_ROM_MAPPER

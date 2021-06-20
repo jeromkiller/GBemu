@@ -3,28 +3,56 @@
 #include "string.h"
 
 #include "OpcodeLookupTable.h"
+#include "CPU.h"
+#include "RAM.h"
+#include "GameBoy.h"
 
 #include "tools.h"
 
-void performNextOpcode(CPU* CPU_ptr)
+//local functions
+//get a pointer to the required opcode parameter
+void* getDataFromParameter(GameBoy_Instance* GB, Opcode_Parameter param);
+//perform the opcode
+void performOpcode(GameBoy_Instance* GB, unsigned char opcode);
+//Read 8bit data from pc
+unsigned char* Read_PC8(GameBoy_Instance* GB) ;
+//Read 16bit data from pc
+unsigned short* Read_PC16(GameBoy_Instance* GB);
+
+
+//read the value in memory at the Program Counter, increase it by 1 and return the read value.
+unsigned char* Read_PC8(GameBoy_Instance* GB) 
 {
-	unsigned char opcode = *Read_PC8(CPU_ptr);
-	performOpcode(CPU_ptr, opcode);
+	return (GB->RAM_ref + (GB->CPU_ref->PC)++);
 }
 
-void performOpcode(CPU* CPU_ptr, unsigned char opcode)
+//read the next two bytes, increase the pc by 2
+unsigned short* Read_PC16(GameBoy_Instance* GB)
+{
+	unsigned short* ramLocation = (unsigned short*)(GB->RAM_ref + GB->CPU_ref->PC);
+	GB->CPU_ref->PC += 2;
+	return ramLocation;
+}
+
+void performNextOpcode(GameBoy_Instance* GB)
+{
+	unsigned char opcode = *Read_PC8(GB);
+	performOpcode(GB, opcode);
+}
+
+void performOpcode(GameBoy_Instance* GB, unsigned char opcode)
 {
 	Instruction* instr = getNormalOpcode(opcode);
 
-	void* param1 = getDataFromParameter(CPU_ptr, instr->param1);
-	void* param2 = getDataFromParameter(CPU_ptr, instr->param2);
+	void* param1 = getDataFromParameter(GB, instr->param1);
+	void* param2 = getDataFromParameter(GB, instr->param2);
 
-	instr->Instruction(param1, param2, CPU_ptr);
+	instr->Instruction(param1, param2, GB);
 }
 
-
-void* getDataFromParameter(CPU* CPU_ptr, Opcode_Parameter param)
+void* getDataFromParameter(GameBoy_Instance* GB, Opcode_Parameter param)
 {
+	CPU* CPU_ptr = getCPU(GB);
 	switch (param)
 	{
 	case NONE:
@@ -61,131 +89,131 @@ void* getDataFromParameter(CPU* CPU_ptr, Opcode_Parameter param)
 		return &(CPU_ptr->PC);
 	//Immediate data
 	case IMMEDIATE_8BIT:
-		addCycleCount(CPU_ptr, 1);
-		return Read_PC8(CPU_ptr);
+		addCycleCount(GB, 1);
+		return Read_PC8(GB);
 	case IMMEDIATE_16BIT:
-		addCycleCount(CPU_ptr, 1);
-		return Read_PC16(CPU_ptr);
+		addCycleCount(GB, 1);
+		return Read_PC16(GB);
 	//Immediate address
 	case ADDRESS_8BIT:	//added to 0xFF00
 	{
-		addCycleCount(CPU_ptr, 2);
-		unsigned short address = 0xFF00 + *Read_PC8(CPU_ptr);
-		return CPU_ptr->RAM_ref + address;
+		addCycleCount(GB, 2);
+		unsigned short address = 0xFF00 + *Read_PC8(GB);
+		return GB->RAM_ref + address;
 	}
 	case ADDRESS_16BIT:
 	{
 		//LSB first, i don't know if this works right, right now...
-		addCycleCount(CPU_ptr, 3);
-		unsigned short address = *Read_PC16(CPU_ptr);
-		return CPU_ptr->RAM_ref + address;
+		addCycleCount(GB, 3);
+		unsigned short address = *Read_PC16(GB);
+		return GB->RAM_ref + address;
 	}
 	case RELATIVE_8BIT:	//signed value added to PC, but i can't add the value to the pointer directly...
-		addCycleCount(CPU_ptr, 2);
-		return Read_PC8(CPU_ptr);
+		addCycleCount(GB, 2);
+		return Read_PC8(GB);
 	//Register from Register
 	case RELATIVE_REG_C:
-		addCycleCount(CPU_ptr, 1);
-		return CPU_ptr->RAM_ref + 0xFF00 + CPU_ptr->C;
+		addCycleCount(GB, 1);
+		return GB->RAM_ref + 0xFF00 + CPU_ptr->C;
 	case ADDRESS_REG_BC:
-		addCycleCount(CPU_ptr, 1);
-		return CPU_ptr->RAM_ref + CPU_ptr->BC;
+		addCycleCount(GB, 1);
+		return GB->RAM_ref + CPU_ptr->BC;
 	case ADDRESS_REG_DE:
-		addCycleCount(CPU_ptr, 1);
-		return CPU_ptr->RAM_ref + CPU_ptr->DE;
+		addCycleCount(GB, 1);
+		return GB->RAM_ref + CPU_ptr->DE;
 	case ADDRESS_REG_HL:
-		addCycleCount(CPU_ptr, 1);
-		return CPU_ptr->RAM_ref + CPU_ptr->HL;
+		addCycleCount(GB, 1);
+		return GB->RAM_ref + CPU_ptr->HL;
 	//Load increases
 	case ADDRESS_REG_HLI:
-		addCycleCount(CPU_ptr, 1);
-		return CPU_ptr->RAM_ref + CPU_ptr->HL++;
+		addCycleCount(GB, 1);
+		return GB->RAM_ref + CPU_ptr->HL++;
 	case ADDRESS_REG_HLD:
-		addCycleCount(CPU_ptr, 1);
-		return CPU_ptr->RAM_ref + CPU_ptr->HL--;
+		addCycleCount(GB, 1);
+		return GB->RAM_ref + CPU_ptr->HL--;
 	//Reset Vectors
 	case RESET_0:
-		return CPU_ptr->RAM_ref + 0x00;
+		return GB->RAM_ref + 0x00;
 	case RESET_1:
-		return CPU_ptr->RAM_ref + 0x08;
+		return GB->RAM_ref + 0x08;
 	case RESET_2:
-		return CPU_ptr->RAM_ref + 0x10;
+		return GB->RAM_ref + 0x10;
 	case RESET_3:
-		return CPU_ptr->RAM_ref + 0x18;
+		return GB->RAM_ref + 0x18;
 	case RESET_4:
-		return CPU_ptr->RAM_ref + 0x20;
+		return GB->RAM_ref + 0x20;
 	case RESET_5:
-		return CPU_ptr->RAM_ref + 0x28;
+		return GB->RAM_ref + 0x28;
 	case RESET_6:
-		return CPU_ptr->RAM_ref + 0x30;
+		return GB->RAM_ref + 0x30;
 	case RESET_7:
-		return CPU_ptr->RAM_ref + 0x38;
+		return GB->RAM_ref + 0x38;
 	default:
 		return NULL;
 	};
 }
 
-void addCycleCount(CPU* CPU_ptr, int cycles)
+void addCycleCount(GameBoy_Instance* GB, int cycles)
 {
-	CPU_ptr->CycleNumber += cycles;
+	GB->CycleNumber += cycles;
 }
 
-void PUSH_Value(unsigned short value, CPU* CPU_ptr)
+void PUSH_Value(unsigned short value, GameBoy_Instance* GB)
 {
-	CPU_ptr->SP -= 2;
-	unsigned short* StackLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->SP);
+	GB->CPU_ref->SP -= 2;
+	unsigned short* StackLocation = (unsigned short*)(GB->RAM_ref + GB->CPU_ref->SP);
 	*StackLocation = value;
-
-//	printStack(CPU_ptr);
 }
 
-unsigned short POP_Value(CPU* CPU_ptr)
+unsigned short POP_Value(GameBoy_Instance* GB)
 {
-	unsigned short* StackLocation = (unsigned short*)(CPU_ptr->RAM_ref + CPU_ptr->SP);
-	CPU_ptr->SP += 2;
+	unsigned short* StackLocation = (unsigned short*)(GB->RAM_ref + GB->CPU_ref->SP);
+	GB->CPU_ref->SP += 2;
 	return *StackLocation;
 }
 
 //functions for normal opcodes
 //cpu instructions
 //Add Value2 to Value1 (Always A) and add Carry;
-void OP_ADC(void *value1, void *value2, CPU* CPU_ptr)
+void OP_ADC(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
-	unsigned char carry = CPU_ptr->FLAGS.Carry?1:0;	//a set carry comes out as 255 for some reason
+	unsigned char carry = flags->Carry?1:0;	//a set carry comes out as 255 for some reason
 
 	unsigned short result = *val1 + (*val2 + carry);
 	//check if the first byte of the result is zero
-	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
+	flags->Zero = (result & 0xff)? 0:1;
+	flags->Subtract = 0;
 	//check if the low nibbles added together cause an overflow to bit 4
-	CPU_ptr->FLAGS.HCarry = (((*val1 & 0xf) + ((*val2 & 0xf) + carry)) & 0x10)? 1:0;
+	flags->HCarry = (((*val1 & 0xf) + ((*val2 & 0xf) + carry)) & 0x10)? 1:0;
 	//check if the result rolled over into the second byte
-	CPU_ptr->FLAGS.Carry = (result & 0x0100)? 1:0;
+	flags->Carry = (result & 0x0100)? 1:0;
 
 	*val1 = result;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Add Value2 to Value1
-void OP_ADD16(void *value1, void *value2, CPU* CPU_ptr)
+void OP_ADD16(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned int result = 0;
 	unsigned short* val1 = (unsigned short*)value1;
 
-	if(value1 == &(CPU_ptr->SP))
+	if(value1 == &(GB->CPU_ref->SP))
 	{
 		signed char* val2 = (signed char*)value2;
 
 		//Zero flag gets reset if an adition was made to the stack pointer
 		//unaffected otherwise
-		CPU_ptr->FLAGS.Zero = 0;
+		flags->Zero = 0;
 
 		//The carry and half carry seem to be based on the lower byte of SP, when adding val2 as unsigned
-		CPU_ptr->FLAGS.HCarry = (((*val1 & 0x000f) + ((unsigned char)*val2 & 0x0f)) & 0x10)?1:0;
-		CPU_ptr->FLAGS.Carry = (((*val1 & 0x00ff) + ((unsigned char)*val2 & 0xff)) & 0x100)?1:0;
+		flags->HCarry = (((*val1 & 0x000f) + ((unsigned char)*val2 & 0x0f)) & 0x10)?1:0;
+		flags->Carry = (((*val1 & 0x00ff) + ((unsigned char)*val2 & 0xff)) & 0x100)?1:0;
 
 		result = *val1 + *val2;
 	}
@@ -195,456 +223,465 @@ void OP_ADD16(void *value1, void *value2, CPU* CPU_ptr)
 
 		result = *val1 + *val2;
 
-		CPU_ptr->FLAGS.HCarry = (((*val1 & 0x0fff) + (*val2 &0x0fff)) & 0x1000)?1:0;
-		CPU_ptr->FLAGS.Carry = (result & 0x10000)?1:0;
+		flags->HCarry = (((*val1 & 0x0fff) + (*val2 &0x0fff)) & 0x1000)?1:0;
+		flags->Carry = (result & 0x10000)?1:0;
 	}
 
-	CPU_ptr->FLAGS.Subtract = 0;
+	flags->Subtract = 0;
 	
 	*val1 = result;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //Add Value2 to Value1 (Always A)
-void OP_ADD8(void *value1, void *value2, CPU* CPU_ptr){ 
+void OP_ADD8(void *value1, void *value2, GameBoy_Instance* GB)
+{
+	CPU_flags* flags = getFlags(GB->CPU_ref); 
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
 
 	unsigned short result = *val1 + *val2;
 
 	//check if the first byte of the result is zero
-	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
+	flags->Zero = (result & 0xff)? 0:1;
+	flags->Subtract = 0;
 	//check if the low nibbles added together cause an overflow to bit 4
-	CPU_ptr->FLAGS.HCarry = (((*val1 & 0xf) + (*val2 & 0xf)) & 0x10)? 1:0;
+	flags->HCarry = (((*val1 & 0xf) + (*val2 & 0xf)) & 0x10)? 1:0;
 	//check if the result rolled over into the second byte
-	CPU_ptr->FLAGS.Carry = (result & 0x0100)? 1:0;
+	flags->Carry = (result & 0x0100)? 1:0;
 
 	*val1 = result;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //bitwise and Value2 into Value1 (always A)
-void OP_AND(void *value1, void *value2, CPU* CPU_ptr)
+void OP_AND(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char* reg1 = (unsigned char*)value1;
 	unsigned char* reg2 = (unsigned char*)value2;
 
 	unsigned char result = *reg1 & *reg2;
 
-	CPU_ptr->FLAGS.Zero = result?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 1;
-	CPU_ptr->FLAGS.Carry = 0;
+	flags->Zero = result?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 1;
+	flags->Carry = 0;
 
 	*reg1 = result;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Push return address to stack, and jump to value1
-void OP_CALL(void *value1, void *value2, CPU* CPU_ptr)
+void OP_CALL(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	unsigned short callAddress = *(unsigned short*)value1;
-	unsigned short returnValue = CPU_ptr->PC;// + 1;
+	unsigned short returnValue = GB->CPU_ref->PC;
 
-	PUSH_Value(returnValue, CPU_ptr);
+	PUSH_Value(returnValue, GB);
 
-	CPU_ptr->PC = callAddress;
+	GB->CPU_ref->PC = callAddress;
 	
-	addCycleCount(CPU_ptr, 5);
+	addCycleCount(GB, 5);
 }
 
 //Push return address to stack, and jump to value1 if the carry is set
-void OP_CALL_C(void *value1, void *value2, CPU* CPU_ptr)
+void OP_CALL_C(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(CPU_ptr->FLAGS.Carry)
+	if(GB->CPU_ref->FLAGS.Carry)
 	{
-		OP_CALL(value1, value2, CPU_ptr);
+		OP_CALL(value1, value2, GB);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Push return address to stack, and jump to value1 if the carry is not set
-void OP_CALL_NC(void *value1, void *value2, CPU* CPU_ptr)
+void OP_CALL_NC(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!CPU_ptr->FLAGS.Carry)
+	if(!GB->CPU_ref->FLAGS.Carry)
 	{
-		OP_CALL(value1, value2, CPU_ptr);
+		OP_CALL(value1, value2, GB);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Push return address to stack, and jump to value1 if the zero is not set
-void OP_CALL_NZ(void *value1, void *value2, CPU* CPU_ptr)
+void OP_CALL_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!CPU_ptr->FLAGS.Zero)
+	if(!GB->CPU_ref->FLAGS.Zero)
 	{
-		OP_CALL(value1, value2, CPU_ptr);
+		OP_CALL(value1, value2, GB);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Push return address to stack, and jump to value1 if the zero is set
-void OP_CALL_Z(void *value1, void *value2, CPU* CPU_ptr)
+void OP_CALL_Z(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(CPU_ptr->FLAGS.Zero)
+	if(GB->CPU_ref->FLAGS.Zero)
 	{
-		OP_CALL(value1, value2, CPU_ptr);
+		OP_CALL(value1, value2, GB);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //call the CB prefixed opcode
-void OP_CBpref(void *value1, void *value2, CPU* CPU_ptr)
+void OP_CBpref(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	unsigned char opcode = *Read_PC8(CPU_ptr);
+	unsigned char opcode = *Read_PC8(GB);
 	CB_Instruction* CB_Op = getCBOpcode(opcode);
-	unsigned char* reg = (unsigned char*)getDataFromParameter(CPU_ptr, CB_Op->param);
+	unsigned char* reg = (unsigned char*)getDataFromParameter(GB, CB_Op->param);
 
-	CB_Op->CB_Instruction(CB_Op->bit, reg, CPU_ptr);
+	CB_Op->CB_Instruction(CB_Op->bit, reg, GB);
 }
 
 //Invert the carry flag
-void OP_CCF(void *value1, void *value2, CPU* CPU_ptr)
+void OP_CCF(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_ptr->FLAGS.Carry = !(CPU_ptr->FLAGS.Carry);
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
+	CPU_flags* flags = getFlags(GB->CPU_ref);
+	flags->Carry = !(flags->Carry);
+	flags->Subtract = 0;
+	flags->HCarry = 0;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Compare Value2 to Value1 (always A)
-void OP_CP(void *value1, void *value2, CPU* CPU_ptr)
+void OP_CP(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
 
-	CPU_ptr->FLAGS.Zero = *val1 == *val2;
-	CPU_ptr->FLAGS.Subtract = 1;
-	CPU_ptr->FLAGS.HCarry = ((*val1 & 0x0f) < (*val2 & 0x0f));
-	CPU_ptr->FLAGS.Carry = (*val1 < *val2);
+	flags->Zero = *val1 == *val2;
+	flags->Subtract = 1;
+	flags->HCarry = ((*val1 & 0x0f) < (*val2 & 0x0f));
+	flags->Carry = (*val1 < *val2);
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Flip all bits in REG_A
-void OP_CPL(void *value1, void *value2, CPU* CPU_ptr)
+void OP_CPL(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_ptr->A = ~CPU_ptr->A;
+	CPU_flags* flags = getFlags(GB->CPU_ref);
+	GB->CPU_ref->A = ~GB->CPU_ref->A;
 
-	CPU_ptr->FLAGS.Subtract = 1;
-	CPU_ptr->FLAGS.HCarry = 1;
+	flags->Subtract = 1;
+	flags->HCarry = 1;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
-void OP_DAA(void *value1, void *value2, CPU* CPU_ptr)
+void OP_DAA(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	unsigned char regA_value = CPU_ptr->A;
+	CPU_flags* flags = getFlags(GB->CPU_ref);
+	unsigned char regA_value = GB->CPU_ref->A;
 
-	if(CPU_ptr->FLAGS.Subtract)	//last opperation was subctraction
+	if(flags->Subtract)	//last opperation was subctraction
 	{
-		if(CPU_ptr->FLAGS.Carry)
+		if(flags->Carry)
 		{
 			regA_value -= 0x60;
-			CPU_ptr->FLAGS.Carry = 1;
+			flags->Carry = 1;
 		}
-		if(CPU_ptr->FLAGS.HCarry)
+		if(flags->HCarry)
 		{
 			regA_value -= 0x06;
 		}
 	}
 	else	//last opperation was an addition
 	{
-		if((CPU_ptr->FLAGS.Carry) || (regA_value > 0x99))
+		if((flags->Carry) || (regA_value > 0x99))
 		{
 			regA_value += 0x60;
-			CPU_ptr->FLAGS.Carry = 1;
+			flags->Carry = 1;
 		}
-		if((CPU_ptr->FLAGS.HCarry) || ((regA_value & 0x0f) > 0x09))
+		if((flags->HCarry) || ((regA_value & 0x0f) > 0x09))
 		{
 			regA_value += 0x06;
 		}
 	}
 
 	//update other flags
-	CPU_ptr->FLAGS.Zero = regA_value ? 0:1;
-	CPU_ptr->FLAGS.HCarry = 0;
+	flags->Zero = regA_value ? 0:1;
+	flags->HCarry = 0;
 
-	CPU_ptr->A = regA_value;
+	GB->CPU_ref->A = regA_value;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Decrement Value1
-void OP_DEC16(void *value1, void *value2, CPU* CPU_ptr)
+void OP_DEC16(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	(*(unsigned short*)value1)--;
 
 	//No flags affected
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //Decrement Value1
-void OP_DEC8(void *value1, void *value2, CPU* CPU_ptr)
+void OP_DEC8(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char* val1 = (unsigned char*)value1;
 
 	(*val1)--;
 
-	CPU_ptr->FLAGS.Zero = *val1?0:1;
-	CPU_ptr->FLAGS.Subtract = 1;
+	flags->Zero = *val1?0:1;
+	flags->Subtract = 1;
 	//if a borrow happend from the second nibble, then the fisrt nibble will be all ones
-	CPU_ptr->FLAGS.HCarry = (*val1 & 0x0f) == 0xf;
+	flags->HCarry = (*val1 & 0x0f) == 0xf;
 
 	//if (HL) was used then this opperation costs one extra cycle
-	if(value1 == CPU_ptr->RAM_ref + CPU_ptr->HL)
+	if(value1 == GB->RAM_ref + GB->CPU_ref->HL)
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 1);
+		addCycleCount(GB, 1);
 	}
 }
 
 //Disable interrupts
-void OP_DI(void *value1, void *value2, CPU* CPU_ptr)
+void OP_DI(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_ptr->interrupt_status = 0;
+//	GB->CPU_ref->interrupt_status = 0;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Enable interrupts
-void OP_EI(void *value1, void *value2, CPU* CPU_ptr)
+void OP_EI(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_ptr->interrupt_status = 1;
+//	GB->CPU_ref->interrupt_status = 1;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
-void OP_ERROR(void *value1, void *value2, CPU* CPU_ptr)
+void OP_ERROR(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	printf("Error: illegalOpcode\n");
 }
 
 //Halt the cpu untill an interrupt occurs
-void OP_HALT(void *value1, void *value2, CPU* CPU_ptr)
+void OP_HALT(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_ptr->status = HALTED;
+//	GB->CPU_ref->status = HALTED;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Increment Value2
-void OP_INC16(void *value1, void *value2, CPU* CPU_ptr)
+void OP_INC16(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	(*(unsigned short*)value1)++;
 
 	//no flags affected
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //Increment Value1
-void OP_INC8(void *value1, void *value2, CPU* CPU_ptr)
+void OP_INC8(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char* val1 = (unsigned char*)value1;
 
 	(*val1)++;
 
-	CPU_ptr->FLAGS.Zero = *val1?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
+	flags->Zero = *val1?0:1;
+	flags->Subtract = 0;
 	//if a half carry happened, then the last nibble will all be zeroes
-	CPU_ptr->FLAGS.HCarry = (*val1 & 0x0f)?0:1;
+	flags->HCarry = (*val1 & 0x0f)?0:1;
 
 	//if (HL) was used then this opperation costs one extra cycle
-	if(value1 == CPU_ptr->RAM_ref + CPU_ptr->HL)
+	if(value1 == GB->RAM_ref + GB->CPU_ref->HL)
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 1);
+		addCycleCount(GB, 1);
 	}
 }
 
 //Jump to Value1 
-void OP_JP(void *value1, void *value2, CPU* CPU_ptr)
+void OP_JP(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	//I have to check the two bytes are the right way around
-	CPU_ptr->PC = *(unsigned short*)value1;
+	GB->CPU_ref->PC = *(unsigned short*)value1;
 
-	if(value1 != &(CPU_ptr->HL))
+	if(value1 != &(GB->CPU_ref->HL))
 	{
-		addCycleCount(CPU_ptr, 3);
+		addCycleCount(GB, 3);
 	}
 }
 
 //Jump to Value1 if the carry flag is set
-void OP_JP_C(void *value1, void *value2, CPU* CPU_ptr)
+void OP_JP_C(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(CPU_ptr->FLAGS.Carry)
+	if(GB->CPU_ref->FLAGS.Carry)
 	{
-		CPU_ptr->PC = *(unsigned short*)value1;
-		addCycleCount(CPU_ptr, 3);
+		GB->CPU_ref->PC = *(unsigned short*)value1;
+		addCycleCount(GB, 3);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Jump to Value1 if the carry flag is not set
-void OP_JP_NC(void *value1, void *value2, CPU* CPU_ptr)
+void OP_JP_NC(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!CPU_ptr->FLAGS.Carry)
+	if(!GB->CPU_ref->FLAGS.Carry)
 	{
-		CPU_ptr->PC = *(unsigned short*)value1;
-		addCycleCount(CPU_ptr, 3);
+		GB->CPU_ref->PC = *(unsigned short*)value1;
+		addCycleCount(GB, 3);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Jump to Value1 if the zero flag is not set
-void OP_JP_NZ(void *value1, void *value2, CPU* CPU_ptr)
+void OP_JP_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!CPU_ptr->FLAGS.Zero)
+	if(!GB->CPU_ref->FLAGS.Zero)
 	{
-		CPU_ptr->PC = *(unsigned short*)value1;
-		addCycleCount(CPU_ptr, 3);
+		GB->CPU_ref->PC = *(unsigned short*)value1;
+		addCycleCount(GB, 3);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Jump to Value1 if the zero flag is set
-void OP_JP_Z(void *value1, void *value2, CPU* CPU_ptr)
+void OP_JP_Z(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(CPU_ptr->FLAGS.Zero)
+	if(GB->CPU_ref->FLAGS.Zero)
 	{
-		CPU_ptr->PC = *(unsigned short*)value1;
-		addCycleCount(CPU_ptr, 3);
+		GB->CPU_ref->PC = *(unsigned short*)value1;
+		addCycleCount(GB, 3);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Jump to PC + value1
-void OP_JR(void *value1, void *value2, CPU* CPU_ptr)
+void OP_JR(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
-	addCycleCount(CPU_ptr, 3);
+	GB->CPU_ref->PC = GB->CPU_ref->PC + *(char*)value1;
+	addCycleCount(GB, 3);
 }
 
 //Jump to PC + value1 if the Carry is set
-void OP_JR_C(void *value1, void *value2, CPU* CPU_ptr)
+void OP_JR_C(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(CPU_ptr->FLAGS.Carry)
+	if(GB->CPU_ref->FLAGS.Carry)
 	{
-		CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
-		addCycleCount(CPU_ptr, 3);
+		GB->CPU_ref->PC = GB->CPU_ref->PC + *(char*)value1;
+		addCycleCount(GB, 3);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Jump to PC + value1 if the Carry is not set
-void OP_JR_NC(void *value1, void *value2, CPU* CPU_ptr)
+void OP_JR_NC(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!CPU_ptr->FLAGS.Carry)
+	if(!GB->CPU_ref->FLAGS.Carry)
 	{
-		CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
-		addCycleCount(CPU_ptr, 3);
+		GB->CPU_ref->PC = GB->CPU_ref->PC + *(char*)value1;
+		addCycleCount(GB, 3);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Jump to PC + value1 if the Zero is not set
-void OP_JR_NZ(void *value1, void *value2, CPU* CPU_ptr)
+void OP_JR_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!CPU_ptr->FLAGS.Zero)
+	if(!GB->CPU_ref->FLAGS.Zero)
 	{
-		CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
-		addCycleCount(CPU_ptr, 3);
+		GB->CPU_ref->PC = GB->CPU_ref->PC + *(char*)value1;
+		addCycleCount(GB, 3);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Jump to PC + value1 if the Zero is set
-void OP_JR_Z(void *value1, void *value2, CPU* CPU_ptr)
+void OP_JR_Z(void *value1, void *value2, GameBoy_Instance* GB)
 {	
-	if(CPU_ptr->FLAGS.Zero)
+	if(GB->CPU_ref->FLAGS.Zero)
 	{
-		CPU_ptr->PC = CPU_ptr->PC + *(char*)value1;
-		addCycleCount(CPU_ptr, 3);
+		GB->CPU_ref->PC = GB->CPU_ref->PC + *(char*)value1;
+		addCycleCount(GB, 3);
 	}
 	else
 	{
-		addCycleCount(CPU_ptr, 2);
+		addCycleCount(GB, 2);
 	}
 }
 
 //Load Value2, into Value1
-void OP_LD16(void *value1, void *value2, CPU* CPU_ptr)
+void OP_LD16(void *value1, void *value2, GameBoy_Instance* GB)
 { 
 	unsigned short* val1 = (unsigned short*)value1;
 	unsigned short* val2 = (unsigned short*)value2;
 
 	*val1 = *val2;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //Load Value2, into Value1
-void OP_LD8(void *value1, void *value2, CPU* CPU_ptr)
+void OP_LD8(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 	
 	//see if the write is being made to ROM
-	if(((val1 - CPU_ptr->RAM_ref) >= RAM_LOCATION_ROM_0_START) &&
-		((val1 - CPU_ptr->RAM_ref) <= RAM_LOCATION_ROM_SWAPPABLE_END))
+	if(((val1 - GB->RAM_ref) >= RAM_LOCATION_ROM_0_START) &&
+		((val1 - GB->RAM_ref) <= RAM_LOCATION_ROM_SWAPPABLE_END))
 	{
-		write_to_rom(val1, CPU_ptr->MAPPER_ref, CPU_ptr->RAM_ref);
+		write_to_rom(val1, GB->MAPPER_ref, GB->RAM_ref);
 		return;
 	}
 	//check if the write is to cartridge ram while its dissabled
-	else if(((val1 - CPU_ptr->RAM_ref) >= RAM_LOCATION_RAM_SWAPPABLE_START) &&
-		((val1 - CPU_ptr->RAM_ref) <= RAM_LOCATION_RAM_SWAPPABLE_END) &&
-		!CPU_ptr->MAPPER_ref->ram_enabled)
+	else if(((val1 - GB->RAM_ref) >= RAM_LOCATION_RAM_SWAPPABLE_START) &&
+		((val1 - GB->RAM_ref) <= RAM_LOCATION_RAM_SWAPPABLE_END) &&
+		!GB->MAPPER_ref->ram_enabled)
 	{
 		return;
 	}
@@ -654,151 +691,157 @@ void OP_LD8(void *value1, void *value2, CPU* CPU_ptr)
 }
 
 //Load SP + r8 into HL
-void OP_LDHL(void *value1, void *value2, CPU* CPU_ptr)
+void OP_LDHL(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned short* HL = (unsigned short*)value1;
 	unsigned short* SP = (unsigned short*)value2;
 
-	signed char relativeValue = *(signed char*)Read_PC8(CPU_ptr);
+	signed char relativeValue = *(signed char*)Read_PC8(GB);
 	unsigned short result = *SP + relativeValue;
 
-	CPU_ptr->FLAGS.Zero = 0;
-	CPU_ptr->FLAGS.Subtract = 0;
+	flags->Zero = 0;
+	flags->Subtract = 0;
 	//check if the low nibbles added together cause an overflow to bit 4
-	CPU_ptr->FLAGS.HCarry = (((*SP & 0xf) + ((unsigned char)relativeValue & 0xf)) & 0x10)? 1:0;
+	flags->HCarry = (((*SP & 0xf) + ((unsigned char)relativeValue & 0xf)) & 0x10)? 1:0;
 	//check if the low and high nibbles added together cause an overflow to bit 7
-	CPU_ptr->FLAGS.Carry = (((*SP & 0xff) + ((unsigned char)relativeValue & 0xff)) & 0x100)? 1:0;
+	flags->Carry = (((*SP & 0xff) + ((unsigned char)relativeValue & 0xff)) & 0x100)? 1:0;
 
 	*HL = result;
 
-	addCycleCount(CPU_ptr, 3);
+	addCycleCount(GB, 3);
 }
 
 //No Operation
-void OP_NOP(void *value1, void *value2, CPU* CPU_ptr)
+void OP_NOP(void *value1, void *value2, GameBoy_Instance* GB)
 { 
 	//no parameters, no flags affected
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Bitwise OR value2 into value1 (always A)
-void OP_OR(void *value1, void *value2, CPU* CPU_ptr)
+void OP_OR(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char* reg1 = (unsigned char*)value1;
 	unsigned char* reg2 = (unsigned char*)value2;
 
 	unsigned char result = *reg1 | *reg2;
 
-	CPU_ptr->FLAGS.Zero = result?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = 0;
+	flags->Zero = result?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = 0;
 
 	*reg1 = result;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Pop two bytes off the stack into a register pair
-void OP_POP(void *value1, void *value2, CPU* CPU_ptr)
+void OP_POP(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	unsigned short* Register = (unsigned short*)value1;
 
-	*Register = POP_Value(CPU_ptr);
+	*Register = POP_Value(GB);
 
 	//there is a chance the empty bit fields of the flag register
 	//get filled when popping a value into AF
-	if(Register == &(CPU_ptr->AF))
+	if(Register == &(GB->CPU_ref->AF))
 	{
-		CPU_ptr->FLAGS.null = 0;
+		GB->CPU_ref->FLAGS.null = 0;
 	}
 
-	addCycleCount(CPU_ptr, 3);
+	addCycleCount(GB, 3);
 }
 
 //Push register pair nn onto the stack
-void OP_PUSH(void *value1, void *value2, CPU* CPU_ptr)
+void OP_PUSH(void *value1, void *value2, GameBoy_Instance* GB)
 { 
 	unsigned short* Register = (unsigned short*)value1;
 
-	PUSH_Value(*Register, CPU_ptr);
+	PUSH_Value(*Register, GB);
 
-	addCycleCount(CPU_ptr, 4);
+	addCycleCount(GB, 4);
 }
 
 //pop the return value from the stack and return to said value
-void OP_RET(void *value1, void *value2, CPU* CPU_ptr)
+void OP_RET(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_ptr->PC = POP_Value(CPU_ptr);
-	addCycleCount(CPU_ptr, 2);
+	GB->CPU_ref->PC = POP_Value(GB);
+	addCycleCount(GB, 2);
 }
 
 //Return and turn interupts back on
-void OP_RETI(void *value1, void *value2, CPU* CPU_ptr)
+void OP_RETI(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	OP_RET(value1, value2, CPU_ptr);
-	CPU_ptr->interrupt_status = 1;
+	OP_RET(value1, value2, GB);
+//	GB->CPU_ref->interrupt_status = 1;
 }
 
 //return of the carry flag is set
-void OP_RET_C(void *value1, void *value2, CPU* CPU_ptr)
+void OP_RET_C(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(CPU_ptr->FLAGS.Carry)
+	if(GB->CPU_ref->FLAGS.Carry)
 	{
-		OP_RET(value1, value2, CPU_ptr);
+		OP_RET(value1, value2, GB);
 	}
 }
 
 //return of the carry flag is not set
-void OP_RET_NC(void *value1, void *value2, CPU* CPU_ptr)
+void OP_RET_NC(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!CPU_ptr->FLAGS.Carry)
+	if(!GB->CPU_ref->FLAGS.Carry)
 	{
-		OP_RET(value1, value2, CPU_ptr);
+		OP_RET(value1, value2, GB);
 	}
 }
 
 //return of the zero flag is not set
-void OP_RET_NZ(void *value1, void *value2, CPU* CPU_ptr)
-{	if(!CPU_ptr->FLAGS.Zero)
+void OP_RET_NZ(void *value1, void *value2, GameBoy_Instance* GB)
+{	if(!GB->CPU_ref->FLAGS.Zero)
 	{
-		OP_RET(value1, value2, CPU_ptr);
+		OP_RET(value1, value2, GB);
 	}
 }
 
 //return of the zero flag is set
-void OP_RET_Z(void *value1, void *value2, CPU* CPU_ptr)
+void OP_RET_Z(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(CPU_ptr->FLAGS.Zero)
+	if(GB->CPU_ref->FLAGS.Zero)
 	{
-		OP_RET(value1, value2, CPU_ptr);
+		OP_RET(value1, value2, GB);
 	}
 }
 
 //Rotate A left through carry
-void OP_RLA(void *value1, void *value2, CPU* CPU_ptr)
+void OP_RLA(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU* CPU_ptr = getCPU(GB);
+	CPU_flags* flags = getFlags(CPU_ptr);
 	unsigned char outbit = CPU_ptr->A & 0x80;
 	unsigned char shifted = CPU_ptr->A << 1;
 
-	if(CPU_ptr->FLAGS.Carry)
+	if(flags->Carry)
 	{
 		shifted = shifted | 0x01; 
 	}
 
-	CPU_ptr->FLAGS.Zero = 0; //shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = 0; //shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	CPU_ptr->A = shifted;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Rotate A left into carry
-void OP_RLCA(void *value1, void *value2, CPU* CPU_ptr)
+void OP_RLCA(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU* CPU_ptr = getCPU(GB);
+	CPU_flags* flags = getFlags(CPU_ptr);
 	unsigned char outbit = CPU_ptr->A & 0x80;
 	unsigned char shifted = CPU_ptr->A << 1;
 
@@ -807,40 +850,44 @@ void OP_RLCA(void *value1, void *value2, CPU* CPU_ptr)
 		shifted = shifted | 0x01;
 	}
 
-	CPU_ptr->FLAGS.Zero = 0;//shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = 0;//shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	CPU_ptr->A = shifted;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Rotate A left through carry
-void OP_RRA(void *value1, void *value2, CPU* CPU_ptr)
+void OP_RRA(void *value1, void *value2, GameBoy_Instance* GB)
 {
-		unsigned char outbit = CPU_ptr->A & 0x01;
+	CPU* CPU_ptr = getCPU(GB);
+	CPU_flags* flags = getFlags(CPU_ptr);
+	unsigned char outbit = CPU_ptr->A & 0x01;
 	unsigned char shifted = CPU_ptr->A >> 1;
 
-	if(CPU_ptr->FLAGS.Carry)
+	if(flags->Carry)
 	{
 		shifted = shifted | 0x80; 
 	}
 
-	CPU_ptr->FLAGS.Zero = 0; //shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = 0; //shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	CPU_ptr->A = shifted;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Rotate A right into carry
-void OP_RRCA(void *value1, void *value2, CPU* CPU_ptr)
+void OP_RRCA(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU* CPU_ptr = getCPU(GB);
+	CPU_flags* flags = getFlags(CPU_ptr);
 	unsigned char outbit = CPU_ptr->A & 0x01;
 	unsigned char shifted = CPU_ptr->A >> 1;
 
@@ -849,112 +896,117 @@ void OP_RRCA(void *value1, void *value2, CPU* CPU_ptr)
 		shifted = shifted | 0x80;
 	}
 
-	CPU_ptr->FLAGS.Zero = 0; //shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = 0; //shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	CPU_ptr->A = shifted;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 	
 }
-void OP_RST(void *value1, void *value2, CPU* CPU_ptr)
+void OP_RST(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	unsigned short resetVector = (unsigned char*)value1 - CPU_ptr->RAM_ref;
+	unsigned short resetVector = (unsigned char*)value1 - GB->RAM_ref;
 
-	PUSH_Value(CPU_ptr->PC, CPU_ptr);
+	PUSH_Value(GB->CPU_ref->PC, GB);
 
-	CPU_ptr->PC = resetVector;
+	GB->CPU_ref->PC = resetVector;
 }
 
 //Subctract with carry
-void OP_SBC(void *value1, void *value2, CPU* CPU_ptr)
+void OP_SBC(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
-	unsigned char carry = CPU_ptr->FLAGS.Carry?1:0;
+	unsigned char carry = flags->Carry?1:0;
 
 	//reduce the result by 1 if the carry flag isn't set
 	unsigned short result = *val1 - (*val2 + carry);
 
 	//check if the first byte of the result is zero
-	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
-	CPU_ptr->FLAGS.Subtract = 1;
+	flags->Zero = (result & 0xff)? 0:1;
+	flags->Subtract = 1;
 	//check a carry took place from the second nibble to the first
-	CPU_ptr->FLAGS.HCarry = ((*val1 & 0x0f) < ((*val2 & 0x0f) + carry));
+	flags->HCarry = ((*val1 & 0x0f) < ((*val2 & 0x0f) + carry));
 	//check if a carry took place into the second nibble
-	CPU_ptr->FLAGS.Carry = (*val1 < (*val2 + carry));
+	flags->Carry = (*val1 < (*val2 + carry));
 
 	*val1 = result;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Set the carry flag
-void OP_SCF(void *value1, void *value2, CPU* CPU_ptr)
+void OP_SCF(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = 1;
+	CPU_flags* flags = getFlags(GB->CPU_ref);
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = 1;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //halt the cpu and lcd untill a button is pressed
-void OP_STOP(void *value1, void *value2, CPU* CPU_ptr)
+void OP_STOP(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_ptr->status = STOPPED;
+//	GB->CPU_ref->status = STOPPED;
 
 	//the stop opcode is actualy two bytes long (followed by a 00 (OP_NOP))
-	CPU_ptr->PC++;
+	GB->CPU_ref->PC++;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Subtract value2 from value1 (Always A)
-void OP_SUB(void *value1, void *value2, CPU* CPU_ptr)
+void OP_SUB(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
 
 	unsigned short result = *val1 - *val2;
 
 	//check if the first byte of the result is zero
-	CPU_ptr->FLAGS.Zero = (result & 0xff)? 0:1;
-	CPU_ptr->FLAGS.Subtract = 1;
+	flags->Zero = (result & 0xff)? 0:1;
+	flags->Subtract = 1;
 	//check a carry took place from the second nibble to the first
-	CPU_ptr->FLAGS.HCarry = ((*val1 & 0x0f) < (*val2 & 0x0f));
+	flags->HCarry = ((*val1 & 0x0f) < (*val2 & 0x0f));
 	//check if a carry took place into the second nibble
-	CPU_ptr->FLAGS.Carry = (*val1 < *val2);
+	flags->Carry = (*val1 < *val2);
 
 	*val1 = result;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //Bitwise XOR value2 into value1 (always A)
-void OP_XOR(void *value1, void *value2, CPU* CPU_ptr)
+void OP_XOR(void *value1, void *value2, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char* reg1 = (unsigned char*)value1;
 	unsigned char* reg2 = (unsigned char*)value2;
 
 	unsigned char result = *reg1 ^ *reg2;
 
-	CPU_ptr->FLAGS.Zero = result?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = 0;
+	flags->Zero = result?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = 0;
 
 	*reg1 = result;
 
-	addCycleCount(CPU_ptr, 1);
+	addCycleCount(GB, 1);
 }
 
 //functions for CB prefixed opcodes
 //Rotate reg left
-void OP_RLC(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_RLC(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char outbit = *reg & 0x80;
 	unsigned char shifted = *reg << 1;
 
@@ -963,20 +1015,21 @@ void OP_RLC(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
 		shifted = shifted | 0x01;
 	}
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	*reg = shifted;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //Rotate reg right
-void OP_RRC(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_RRC(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
-		unsigned char outbit = *reg & 0x01;
+	CPU_flags* flags = getFlags(GB->CPU_ref);
+	unsigned char outbit = *reg & 0x01;
 	unsigned char shifted = *reg >> 1;
 
 	if(outbit)
@@ -984,152 +1037,159 @@ void OP_RRC(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
 		shifted = shifted | 0x80;
 	}
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	*reg = shifted;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //Rotate reg left through carry
-void OP_RL(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_RL(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char outbit = *reg & 0x80;
 	unsigned char shifted = *reg << 1;
 
-	if(CPU_ptr->FLAGS.Carry)
+	if(flags->Carry)
 	{
 		shifted = shifted | 0x01; 
 	}
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	*reg = shifted;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //Rotate right through carry
-void OP_RR(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_RR(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char outbit = *reg & 0x01;
 	unsigned char shifted = *reg >> 1;
 
-	if(CPU_ptr->FLAGS.Carry)
+	if(flags->Carry)
 	{
 		shifted = shifted | 0x80; 
 	}
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	*reg = shifted;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //shift reg left into carry
-void OP_SLA(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_SLA(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char outbit = *reg & 0x80;
 	unsigned char shifted = *reg << 1;
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	*reg = shifted;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //shift reg right into carry (msb stays the same)
-void OP_SRA(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_SRA(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char outbit = *reg & 0x01;
 	unsigned char msb = *reg & 0x80;
 	unsigned char shifted = *reg >> 1;
 
 	shifted = shifted | msb;
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	*reg = shifted;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //shift reg right into carry
-void OP_SRL(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_SRL(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char outbit = *reg & 0x01;
 	unsigned char shifted = *reg >> 1;
 
-	CPU_ptr->FLAGS.Zero = shifted?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = outbit?1:0;
+	flags->Zero = shifted?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = outbit?1:0;
 
 	*reg = shifted;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //swap the upper and lower nibbles of reg
-void OP_SWAP(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_SWAP(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char upNibble = *reg & 0xF0;
 	unsigned char lowNibble = *reg & 0x0F;
 
-	CPU_ptr->FLAGS.Zero = *reg?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 0;
-	CPU_ptr->FLAGS.Carry = 0;
+	flags->Zero = *reg?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 0;
+	flags->Carry = 0;
 
 	*reg = (upNibble >> 4) | (lowNibble << 4);
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //test bit in reg
-void OP_BIT(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_BIT(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
+	CPU_flags* flags = getFlags(GB->CPU_ref);
 	unsigned char mask = 1 << bit;
 	unsigned char result = *reg & mask;
 
-	CPU_ptr->FLAGS.Zero = result?0:1;
-	CPU_ptr->FLAGS.Subtract = 0;
-	CPU_ptr->FLAGS.HCarry = 1;
+	flags->Zero = result?0:1;
+	flags->Subtract = 0;
+	flags->HCarry = 1;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //reset bit of reg
-void OP_RES(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_RES(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
 	unsigned char mask = ~(1 << bit);
 	*reg = *reg & mask;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }
 
 //set bit of reg
-void OP_SET(unsigned char bit, unsigned char* reg, CPU* CPU_ptr)
+void OP_SET(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
 	unsigned char mask = 1 << bit;
 	*reg = *reg | mask;
 
-	addCycleCount(CPU_ptr, 2);
+	addCycleCount(GB, 2);
 }

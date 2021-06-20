@@ -1,7 +1,6 @@
 //local includesk
 #include "Tools.h"
-#include "CPU.h"
-#include "RAM.h"
+#include "GameBoy.h"
 
 //prints an 8 bit value in binary
 void printBinary(char value)
@@ -56,7 +55,6 @@ void printCPU(CPU* CPU_ptr)
 	printHex16bit(CPU_ptr->PC);
 	printf("\nFlags:\tZNHCxxxx\n\t");
 	printBinary(CPU_ptr->F);
-	printf("\nClyle: %lu", CPU_ptr->CycleNumber);
 	printf("\n\n");
 }
 
@@ -67,8 +65,11 @@ void test(void *value1, void *value2)
 }
 
 //prints the last 10 entries of 
-void printStack(CPU* CPU_ptr)
+void printStack(GameBoy_Instance* GB)
 {
+	CPU* CPU_ptr = getCPU(GB);
+	RAM* RAM_ptr = getRAM(GB);
+
 	int location = CPU_ptr->SP + 20;
 	if(location >= 0xFFFE)
 	{
@@ -80,7 +81,7 @@ void printStack(CPU* CPU_ptr)
 	{
 		printHex16bit(location);
 		printf("-> 0x");
-		printHex16bit(*(unsigned short*)(CPU_ptr->RAM_ref + location));
+		printHex16bit(*(unsigned short*)(RAM_ptr + location));
 		printf(";\n");
 	}
 	printf("== ========= ==\n\n");

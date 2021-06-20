@@ -4,6 +4,7 @@
 #include "CPU.h"
 #include "RAM.h"
 #include "RomMapper.h"
+#include "Interrupt.h"
 #include "Opcodes.h"
 #include "SerialPrinter.h"
 
@@ -12,33 +13,29 @@
 
 int main()
 {
-	static char ROM_Path[] = {"./.roms/testRoms/01-special.gb\0"};
+	static char ROM_Path[] = {"./.roms/cpu_instrs.gb\0"};
 	//startup
-	RAM* GameboyRAM = RAM_init();
-	Memory_Mapper* mapper = Mapper_init(ROM_Path, GameboyRAM);
-	if(NULL == mapper)
+	GameBoy_Instance* GameBoy = gameBoy_init(ROM_Path);
+	if(NULL == GameBoy)
 	{
+		printf("ERROR: A problem occured whilst creating the gameboy datastructure");
 		return 0;
 	}
-	
-	CPU* GameboyCPU = CPU_init(GameboyRAM, mapper);
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
 	while(1)
 	{
-		performNextOpcode(GameboyCPU);
-		perform_serialOperation(GameboyRAM);
-//		printf("PC: ");
-//		printHex16bit(GameboyCPU->PC);
-//		printf("\n");
+		performNextOpcode(GameBoy);
+		perform_serialOperation(getRAM(GameBoy));
+		printf("PC: ");
+		printHex16bit(getCPU(GameBoy)->PC);
+		printf("\n");
 		fflush(stdout);
 	}	
 
 ///////////////////////////////////////////////////////////////////////
+	gameBoy_dispose(GameBoy);
 
-	CPU_dispose(GameboyCPU);
-	Mapper_dispose(mapper);
-	RAM_dispose(GameboyRAM);
     return 0;
 }

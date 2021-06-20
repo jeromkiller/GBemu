@@ -1,5 +1,4 @@
-#ifndef _SERIAL_PRINTER_H
-#define _SERIAL_PRINTER_H                                        
+#pragma once                                     
 
 //includes
 #include "RAM.h"
@@ -14,15 +13,3 @@
 //main function
 //check if there is data to be output on the serial bus
 void perform_serialOperation(RAM* RAM_ptr);
-
-//helper functions
-//check if a serial opperation is requested
-unsigned char check_transferStart(RAM* RAM_ptr);
-
-//check if the internal clock has to be used
-unsigned char use_internalClock(RAM* RAM_ptr);
-
-//print the serial data
-void print_serialInfo(RAM* RAM_ptr);
-
-#endif //_SERIAL_PRINTER_H 

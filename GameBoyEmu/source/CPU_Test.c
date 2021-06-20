@@ -33,29 +33,19 @@ int main(int argc, char *argv[] )
 
 	char* ROM_Path = argv[1];
 	//startup
-	RAM* GameboyRAM = RAM_init();
-	Memory_Mapper* mapper = Mapper_init(ROM_Path, GameboyRAM);
-	if(NULL == mapper)
-	{
-        printf("Error building mapper\n");
-		return 0;
-	}
-	
-	CPU* GameboyCPU = CPU_init(GameboyRAM, mapper);
+	GameBoy_Instance* GameBoy = gameBoy_init(ROM_Path);
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
-	while(!isSpooling(GameboyCPU))
+	while(!isSpooling(getCPU(GameBoy)))
 	{
-		performNextOpcode(GameboyCPU);
-		perform_serialOperation(GameboyRAM);
+		performNextOpcode(GameBoy);
+		perform_serialOperation(getRAM(GameBoy));
 		fflush(stdout);
 	}	
 
 ///////////////////////////////////////////////////////////////////////
 
-	CPU_dispose(GameboyCPU);
-	Mapper_dispose(mapper);
-	RAM_dispose(GameboyRAM);
+	gameBoy_dispose(GameBoy);
     return 0;
 }
