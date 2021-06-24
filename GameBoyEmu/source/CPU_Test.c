@@ -16,20 +16,20 @@ unsigned short lastAddress = 0;
 //like when a JR -1 happens, so the cpu just spools
 unsigned char isSpooling(CPU* CPU_ptr)
 {
-    unsigned char spooling = lastAddress == CPU_ptr->PC;
-    lastAddress = CPU_ptr->PC;
+	unsigned char spooling = lastAddress == CPU_ptr->PC;
+	lastAddress = CPU_ptr->PC;
 
-    return spooling;
+	return spooling;
 }
 
 int main(int argc, char *argv[] )
 {
-    //check the arguments
-    if(argc != 2)
-    {
-        printf("Wierd ammount of parameters found, please use as: %s [rom path]\n", argv[0]);
-        return 0;
-    }
+	//check the arguments
+	if(argc != 2)
+	{
+		printf("Wierd ammount of parameters found, please use as: %s [rom path]\n", argv[0]);
+		return 0;
+	}
 
 	char* ROM_Path = argv[1];
 	//startup
@@ -49,5 +49,5 @@ int main(int argc, char *argv[] )
 ///////////////////////////////////////////////////////////////////////
 
 	gameBoy_dispose(GameBoy);
-    return 0;
+	return 0;
 }

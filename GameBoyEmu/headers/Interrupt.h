@@ -13,31 +13,31 @@ typedef enum CPU_statuses
 
 typedef enum Interrupt_statusses
 {
-    INTERRUPT_DISABLED = 0,
-    INTERRUPT_ENABLED,
-    INTERRUPT_REENABLE_NEXT,
-    INTERRUPT_REENABLE_SHEDUELED, //when reenabeling the innterrupts, they only enable after the next opcode
+	INTERRUPT_DISABLED = 0,
+	INTERRUPT_ENABLED,
+	INTERRUPT_REENABLE_NEXT,
+	INTERRUPT_REENABLE_SHEDUELED, //when reenabeling the innterrupts, they only enable after the next opcode
 }Interrupt_status;
 
 //structs
 typedef struct Interrupt_registers_struct
 {
-    CPU_status CPU_status;
-    Interrupt_status Interrupt_master_enable;
+	CPU_status CPU_status;
+	Interrupt_status Interrupt_master_enable;
 }Interrupt_registers;
 
 typedef union interruptFlags_union
 {
-    unsigned char value;
-    struct bitfields
-    {
-        unsigned char VBlank: 1;
-        unsigned char LCDC: 1;
-        unsigned char timerOverflow: 1;
-        unsigned char serialComplete: 1;
-        unsigned char playerInput: 1;
-        unsigned char null: 3;
-    }interruptFlags;
+	unsigned char value;
+	struct bitfields
+	{
+		unsigned char VBlank: 1;
+		unsigned char LCDC: 1;
+		unsigned char timerOverflow: 1;
+		unsigned char serialComplete: 1;
+		unsigned char playerInput: 1;
+		unsigned char null: 3;
+	}interruptFlags;
 }interruptFlags_Data;
 
 //Functions

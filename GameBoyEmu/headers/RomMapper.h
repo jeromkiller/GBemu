@@ -14,43 +14,43 @@
 //enums
 typedef enum Memory_controller_enum
 {
-    Rom_Only = 0,
-    MBC1,
-    MBC2,
-    MBC3,
-    MBC5
+	Rom_Only = 0,
+	MBC1,
+	MBC2,
+	MBC3,
+	MBC5
 }Memory_controller_type;
 
 typedef enum Memory_mode_enum
 {
-    ROM16_RAM8 = 0,
-    ROM4_RAM32,
+	ROM16_RAM8 = 0,
+	ROM4_RAM32,
 }Memory_mode;
 
 //structs
 //each rom bank is a linked list that links to the next bank
 typedef struct Data_bank_struct
 {
-    unsigned char bankId;
-    struct Data_bank_struct* nextBank;
-    unsigned char* data;
+	unsigned char bankId;
+	struct Data_bank_struct* nextBank;
+	unsigned char* data;
 }Data_bank;
 
 //the memory mapper struct contains all info for the memory mapper
 typedef struct Memory_Mapper_struct
 {
-    Memory_controller_type memory_controller;
-    Memory_mode memoryMode;
-    size_t rom_size;
-    unsigned char num_rom_banks;
-    unsigned char rom_msb;
-    size_t ram_size;
-    unsigned char num_ram_banks;
-    unsigned char active_ram_bank;
-    unsigned char ram_enabled;
-    unsigned char battery;
-    Data_bank* romBank_ptr;
-    Data_bank* ramBank_ptr;
+	Memory_controller_type memory_controller;
+	Memory_mode memoryMode;
+	size_t rom_size;
+	unsigned char num_rom_banks;
+	unsigned char rom_msb;
+	size_t ram_size;
+	unsigned char num_ram_banks;
+	unsigned char active_ram_bank;
+	unsigned char ram_enabled;
+	unsigned char battery;
+	Data_bank* romBank_ptr;
+	Data_bank* ramBank_ptr;
 }Memory_Mapper;
 
 //functions

@@ -9,17 +9,17 @@
 //struct
 typedef struct GameBoy_Struct
 {
-    //pointers
-    CPU* CPU_ref;
-    RAM* RAM_ref;
-    Interrupt_registers* Interrupt_ref;
-    Memory_Mapper* MAPPER_ref;
+	//pointers
+	CPU* CPU_ref;
+	RAM* RAM_ref;
+	Interrupt_registers* Interrupt_ref;
+	Memory_Mapper* MAPPER_ref;
 
-    //data
-    unsigned long CycleNumber;  //number of cpu cycles
-    unsigned short SystemTimer; //number of clock cycles, rolls over and gets reset by writing to DIV
-    unsigned short LastSystemTimer;
-    unsigned short TimerStep;   //counter that counts when the next increase
+	//data
+	unsigned long CycleNumber;  //number of cpu cycles
+	unsigned short SystemTimer; //number of clock cycles, rolls over and gets reset by writing to DIV
+	unsigned short LastSystemTimer;
+	unsigned short TimerStep;   //counter that counts when the next increase
 }GameBoy_Instance;
 
 //functions
