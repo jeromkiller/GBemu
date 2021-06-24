@@ -17,7 +17,7 @@ class bcolors:
 
 
 #where the roms to test live
-TestRomLocation = "./.roms/testRoms/"
+TestRomLocation = "./.roms/testRoms/cpu_instrs/individual/"
 
 def main():
     #no need to call this from the root, since the makefile is already called from the root
