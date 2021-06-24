@@ -16,7 +16,10 @@ typedef struct GameBoy_Struct
     Memory_Mapper* MAPPER_ref;
 
     //data
-    unsigned long CycleNumber;
+    unsigned long CycleNumber;  //number of cpu cycles
+    unsigned short SystemTimer; //number of clock cycles, rolls over and gets reset by writing to DIV
+    unsigned short LastSystemTimer;
+    unsigned short TimerStep;   //counter that counts when the next increase
 }GameBoy_Instance;
 
 //functions
@@ -30,3 +33,6 @@ CPU* getCPU(GameBoy_Instance* GB);
 RAM* getRAM(GameBoy_Instance* GB);
 Interrupt_registers* getInterruptRegs(GameBoy_Instance* GB);
 Memory_Mapper* getMemMapper(GameBoy_Instance* GB);
+
+
+void WriteToMemory(unsigned char* value1, unsigned char* value2, GameBoy_Instance* GB);

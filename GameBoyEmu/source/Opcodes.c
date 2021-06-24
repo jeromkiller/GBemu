@@ -36,8 +36,17 @@ unsigned short* Read_PC16(GameBoy_Instance* GB)
 
 void performNextOpcode(GameBoy_Instance* GB)
 {
-	unsigned char opcode = *Read_PC8(GB);
-	performOpcode(GB, opcode);
+	//perform the next opcode if the pcu is running
+	if(getInterruptRegs(GB)->CPU_status == CPU_RUNNING)
+	{
+		unsigned char opcode = *Read_PC8(GB);
+		performOpcode(GB, opcode);
+	}
+	else
+	{
+		//keept the timer running anyway :P
+		addCycleCount(GB, 1);
+	}
 }
 
 void performOpcode(GameBoy_Instance* GB, unsigned char opcode)
@@ -156,19 +165,20 @@ void* getDataFromParameter(GameBoy_Instance* GB, Opcode_Parameter param)
 void addCycleCount(GameBoy_Instance* GB, int cycles)
 {
 	GB->CycleNumber += cycles;
+	GB->SystemTimer += cycles * 4;
 }
 
-void PUSH_Value(unsigned short value, GameBoy_Instance* GB)
+void PUSH_Value(unsigned short value, CPU* CPU_ptr, RAM* RAM_ptr)
 {
-	GB->CPU_ref->SP -= 2;
-	unsigned short* StackLocation = (unsigned short*)(GB->RAM_ref + GB->CPU_ref->SP);
+	CPU_ptr->SP -= 2;
+	unsigned short* StackLocation = (unsigned short*)(RAM_ptr + CPU_ptr->SP);
 	*StackLocation = value;
 }
 
-unsigned short POP_Value(GameBoy_Instance* GB)
+unsigned short POP_Value(CPU* CPU_ptr, RAM* RAM_ptr)
 {
-	unsigned short* StackLocation = (unsigned short*)(GB->RAM_ref + GB->CPU_ref->SP);
-	GB->CPU_ref->SP += 2;
+	unsigned short* StackLocation = (unsigned short*)(RAM_ptr + CPU_ptr->SP);
+	CPU_ptr->SP += 2;
 	return *StackLocation;
 }
 
@@ -281,7 +291,7 @@ void OP_CALL(void *value1, void *value2, GameBoy_Instance* GB)
 	unsigned short callAddress = *(unsigned short*)value1;
 	unsigned short returnValue = GB->CPU_ref->PC;
 
-	PUSH_Value(returnValue, GB);
+	PUSH_Value(returnValue, getCPU(GB), getRAM(GB));
 
 	GB->CPU_ref->PC = callAddress;
 	
@@ -463,7 +473,7 @@ void OP_DEC8(void *value1, void *value2, GameBoy_Instance* GB)
 //Disable interrupts
 void OP_DI(void *value1, void *value2, GameBoy_Instance* GB)
 {
-//	GB->CPU_ref->interrupt_status = 0;
+	getInterruptRegs(GB)->Interrupt_master_enable = INTERRUPT_DISABLED;
 
 	addCycleCount(GB, 1);
 }
@@ -471,7 +481,7 @@ void OP_DI(void *value1, void *value2, GameBoy_Instance* GB)
 //Enable interrupts
 void OP_EI(void *value1, void *value2, GameBoy_Instance* GB)
 {
-//	GB->CPU_ref->interrupt_status = 1;
+	getInterruptRegs(GB)->Interrupt_master_enable = INTERRUPT_REENABLE_SHEDUELED;
 
 	addCycleCount(GB, 1);
 }
@@ -483,7 +493,7 @@ void OP_ERROR(void *value1, void *value2, GameBoy_Instance* GB)
 //Halt the cpu untill an interrupt occurs
 void OP_HALT(void *value1, void *value2, GameBoy_Instance* GB)
 {
-//	GB->CPU_ref->status = HALTED;
+	getInterruptRegs(GB)->CPU_status = CPU_HALTED;
 
 	addCycleCount(GB, 1);
 }
@@ -671,23 +681,7 @@ void OP_LD8(void *value1, void *value2, GameBoy_Instance* GB)
 	unsigned char* val2 = (unsigned char*)value2;
 	addCycleCount(GB, 1);
 	
-	//see if the write is being made to ROM
-	if(((val1 - GB->RAM_ref) >= RAM_LOCATION_ROM_0_START) &&
-		((val1 - GB->RAM_ref) <= RAM_LOCATION_ROM_SWAPPABLE_END))
-	{
-		write_to_rom(val1, GB->MAPPER_ref, GB->RAM_ref);
-		return;
-	}
-	//check if the write is to cartridge ram while its dissabled
-	else if(((val1 - GB->RAM_ref) >= RAM_LOCATION_RAM_SWAPPABLE_START) &&
-		((val1 - GB->RAM_ref) <= RAM_LOCATION_RAM_SWAPPABLE_END) &&
-		!GB->MAPPER_ref->ram_enabled)
-	{
-		return;
-	}
-
-	*val1 = *val2;
-
+	WriteToMemory(val1, val2, GB);
 }
 
 //Load SP + r8 into HL
@@ -743,7 +737,7 @@ void OP_POP(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	unsigned short* Register = (unsigned short*)value1;
 
-	*Register = POP_Value(GB);
+	*Register = POP_Value(getCPU(GB), getRAM(GB));
 
 	//there is a chance the empty bit fields of the flag register
 	//get filled when popping a value into AF
@@ -760,7 +754,7 @@ void OP_PUSH(void *value1, void *value2, GameBoy_Instance* GB)
 { 
 	unsigned short* Register = (unsigned short*)value1;
 
-	PUSH_Value(*Register, GB);
+	PUSH_Value(*Register, getCPU(GB), getRAM(GB));
 
 	addCycleCount(GB, 4);
 }
@@ -768,7 +762,7 @@ void OP_PUSH(void *value1, void *value2, GameBoy_Instance* GB)
 //pop the return value from the stack and return to said value
 void OP_RET(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	GB->CPU_ref->PC = POP_Value(GB);
+	GB->CPU_ref->PC = POP_Value(getCPU(GB), getRAM(GB));
 	addCycleCount(GB, 2);
 }
 
@@ -776,7 +770,7 @@ void OP_RET(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_RETI(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	OP_RET(value1, value2, GB);
-//	GB->CPU_ref->interrupt_status = 1;
+	getInterruptRegs(GB)->Interrupt_master_enable = INTERRUPT_ENABLED;
 }
 
 //return of the carry flag is set
@@ -910,7 +904,7 @@ void OP_RST(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	unsigned short resetVector = (unsigned char*)value1 - GB->RAM_ref;
 
-	PUSH_Value(GB->CPU_ref->PC, GB);
+	PUSH_Value(GB->CPU_ref->PC, getCPU(GB), getRAM(GB));
 
 	GB->CPU_ref->PC = resetVector;
 }
@@ -953,7 +947,7 @@ void OP_SCF(void *value1, void *value2, GameBoy_Instance* GB)
 //halt the cpu and lcd untill a button is pressed
 void OP_STOP(void *value1, void *value2, GameBoy_Instance* GB)
 {
-//	GB->CPU_ref->status = STOPPED;
+	getInterruptRegs(GB)->CPU_status = CPU_STOPPED;
 
 	//the stop opcode is actualy two bytes long (followed by a 00 (OP_NOP))
 	GB->CPU_ref->PC++;

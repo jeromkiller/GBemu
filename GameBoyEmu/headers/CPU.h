@@ -3,11 +3,11 @@
 //structs
 typedef struct CPU_flag_registers
 {
-	char null : 4;
-	char Carry : 1;
-	char HCarry : 1;
-	char Subtract : 1;
-	char Zero : 1;
+	unsigned char null : 4;
+	unsigned char Carry : 1;
+	unsigned char HCarry : 1;
+	unsigned char Subtract : 1;
+	unsigned char Zero : 1;
 }CPU_flags;
 
 typedef struct CPU_struct 

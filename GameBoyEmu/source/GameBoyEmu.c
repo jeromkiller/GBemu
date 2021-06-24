@@ -6,14 +6,14 @@
 #include "RomMapper.h"
 #include "Interrupt.h"
 #include "Opcodes.h"
-#include "SerialPrinter.h"
+#include "IO.h"
 
 #include "Tools.h"
 //#include "OpcodeLookupTable.h"
 
 int main()
 {
-	static char ROM_Path[] = {"./.roms/cpu_instrs.gb\0"};
+	static char ROM_Path[] = {"./.roms/testRoms/09-op r,r.gb\0"};
 	//startup
 	GameBoy_Instance* GameBoy = gameBoy_init(ROM_Path);
 	if(NULL == GameBoy)
@@ -26,13 +26,13 @@ int main()
 	//some user code for testing
 	while(1)
 	{
+		check_interrupts(getInterruptRegs(GameBoy), getCPU(GameBoy), getRAM(GameBoy));
 		performNextOpcode(GameBoy);
 		perform_serialOperation(getRAM(GameBoy));
-		printf("PC: ");
-		printHex16bit(getCPU(GameBoy)->PC);
-		printf("\n");
+		perform_timerOperation(getRAM(GameBoy), GameBoy->SystemTimer, &(GameBoy->LastSystemTimer), &(GameBoy->TimerStep));
 		fflush(stdout);
 	}	
+
 
 ///////////////////////////////////////////////////////////////////////
 	gameBoy_dispose(GameBoy);

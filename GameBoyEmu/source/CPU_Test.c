@@ -5,7 +5,7 @@
 #include "RAM.h"
 #include "RomMapper.h"
 #include "Opcodes.h"
-#include "SerialPrinter.h"
+#include "IO.h"
 
 //#include "OpcodeLookupTable.h"
 
@@ -37,10 +37,12 @@ int main(int argc, char *argv[] )
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
-	while(!isSpooling(getCPU(GameBoy)))
+	while(GameBoy->CycleNumber < 50000000)	//the cpu spools in the interrupt test, so i can't use that as a check anymore :P
 	{
+		check_interrupts(getInterruptRegs(GameBoy), getCPU(GameBoy), getRAM(GameBoy));
 		performNextOpcode(GameBoy);
 		perform_serialOperation(getRAM(GameBoy));
+		perform_timerOperation(getRAM(GameBoy), GameBoy->SystemTimer, &(GameBoy->LastSystemTimer), &(GameBoy->TimerStep));
 		fflush(stdout);
 	}	
 

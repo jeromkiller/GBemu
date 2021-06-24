@@ -72,9 +72,9 @@ void performNextOpcode(GameBoy_Instance* GB);
 void addCycleCount(GameBoy_Instance* GB, int cycles);
 
 //push a value to the virtual stack
-void PUSH_Value(unsigned short reg, GameBoy_Instance* GB);
+void PUSH_Value(unsigned short value, CPU* CPU_ptr, RAM* RAM_ptr);
 //pop a value from the virtual stack
-unsigned short POP_Value(GameBoy_Instance* GB);
+unsigned short POP_Value(CPU* CPU_ptr, RAM* RAM_ptr);
 
 //functions for normal opcodes
 void OP_ADC(void *value1, void *value2, GameBoy_Instance* GB);
