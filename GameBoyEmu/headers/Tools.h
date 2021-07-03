@@ -21,4 +21,4 @@ void printHex16bit(short value);
 void printCPU(CPU* CPU_ptr);
 
 //dumps the last 10 entries on the stack
-void printStack(GameBoy_Instance* GB);
+void printStack(CPU* CPU_ptr, RAM* RAM_ptr);

@@ -65,11 +65,8 @@ void test(void *value1, void *value2)
 }
 
 //prints the last 10 entries of 
-void printStack(GameBoy_Instance* GB)
+void printStack(CPU* CPU_ptr, RAM* RAM_ptr)
 {
-	CPU* CPU_ptr = getCPU(GB);
-	RAM* RAM_ptr = getRAM(GB);
-
 	int location = CPU_ptr->SP + 20;
 	if(location >= 0xFFFE)
 	{

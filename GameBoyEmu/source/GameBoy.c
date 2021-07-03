@@ -71,7 +71,7 @@ unsigned char inRange(unsigned short writeLocation, unsigned short RangeStart, u
 }
 
 
-void WriteToMemory(unsigned char* value1, unsigned char* value2, GameBoy_Instance* GB)
+void writeOperation(unsigned char* value1, unsigned char* value2, GameBoy_Instance* GB)
 {
 	//check if the write is done to a special part of memory
 	RAM* ram = getRAM(GB);
@@ -101,7 +101,7 @@ void WriteToMemory(unsigned char* value1, unsigned char* value2, GameBoy_Instanc
 			//see if the write is being made to ROM
 			if(inRange(writeLocation, RAM_LOCATION_ROM_0_START, RAM_LOCATION_ROM_SWAPPABLE_END))
 			{
-				write_to_rom(value1, getMemMapper(GB), getRAM(GB));
+				write_to_rom(writeLocation, *value2, getMemMapper(GB), getRAM(GB));
 				return;
 			}
 			//check if the write is to cartridge ram while its dissabled

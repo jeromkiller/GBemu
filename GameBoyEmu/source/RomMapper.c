@@ -272,21 +272,27 @@ Data_bank* create_RomBank(FILE* RomFile, unsigned int bankId)
 
 		return NULL;
 	}
+//	char stringBuf[40];
+//	snprintf(stringBuf, 39, "Rom Bank: %d", bankId);
+//	strncpy((char*)(new_bank->data), stringBuf, strlen(stringBuf));
 
-	//return the newly made rom bank
+	//return the newly created bank
 	return new_bank;
 }
 
 Data_bank* build_RamBanks(unsigned char num_banks)
 {
+	//make sure we have to allocate ram banks
 	if(num_banks == 0)
 	{
 		return NULL;
 	}
 
+	//allocate at least the first ram bank
 	Data_bank* firstBank = create_RamBank(0);
 	Data_bank* prevBank = firstBank;
 
+	//create the rest of the ram banks
 	for(unsigned char i = 1; i < num_banks; i++)
 	{
 		Data_bank* newBank = create_RamBank(i);
@@ -295,11 +301,13 @@ Data_bank* build_RamBanks(unsigned char num_banks)
 		prevBank = newBank;
 	}
 
+	//return a pointer to the first ram bank
 	return firstBank;
 }
 
 Data_bank* create_RamBank(unsigned int bankId)
 {
+	//allocate a new bank
 	Data_bank* newBank = (Data_bank*)malloc(sizeof(RAM_BANK_SIZE));
 	newBank->bankId = bankId;
 	newBank->nextBank = NULL;
@@ -356,6 +364,7 @@ void swap_Rambank(unsigned char newBankNumber, Memory_Mapper* mapper, RAM* RAM_p
 
 Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank)
 {
+	//check if the bankNumber is valid
 	Data_bank* bank = startBank;
 	while(NULL != bank)
 	{
@@ -366,6 +375,7 @@ Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank)
 		bank = bank->nextBank;
 	}
 
+	//return the bank if it was found
 	if(NULL == bank)
 	{
 		printf("Error: could not find bank %hhu\n", bankNumber);
@@ -374,25 +384,23 @@ Data_bank* find_bank(unsigned char bankNumber, Data_bank* startBank)
 	return bank;
 }
 
-void write_to_rom(unsigned char* valueLocation, Memory_Mapper* mapper, RAM* RAM_ptr)
-{
-	//check what part of rom was written to
-	unsigned short romLocation = valueLocation - RAM_ptr;
-	unsigned char writeValue = *valueLocation;
-	
+void write_to_rom(unsigned short writeLocation, unsigned char value, Memory_Mapper* mapper, RAM* RAM_ptr)
+{	
 	//is the address we are writing to in rom space?
-	if(romLocation > RAM_LOCATION_ROM_SWAPPABLE_END)
+	if(writeLocation > RAM_LOCATION_ROM_SWAPPABLE_END)
 	{
-		printf("Error: location %hu is not located in rom space'n", romLocation);
+		printf("Error: location %hu is not located in rom space'n", writeLocation);
 		return;
 	}
+	
+	//what type of memory controller are we using?
 	switch(mapper->memory_controller)
 	{
 		case Rom_Only:
-			printf("Warning: memory controller is in rom only mode, writes to rom location %hu is ignored\n", romLocation);
+			printf("Warning: memory controller is in rom only mode, writes to rom location %hu is ignored\n", writeLocation);
 			return;
 		case MBC1:
-			write_to_MBC1(writeValue, romLocation, mapper, RAM_ptr);
+			write_to_MBC1(value, writeLocation, mapper, RAM_ptr);
 			break;
 		case MBC2:
 			//TODO: implement

@@ -44,7 +44,7 @@ void performNextOpcode(GameBoy_Instance* GB)
 	}
 	else
 	{
-		//keept the timer running anyway :P
+		//keep the timer running anyway :P
 		addCycleCount(GB, 1);
 	}
 }
@@ -681,7 +681,7 @@ void OP_LD8(void *value1, void *value2, GameBoy_Instance* GB)
 	unsigned char* val2 = (unsigned char*)value2;
 	addCycleCount(GB, 1);
 	
-	WriteToMemory(val1, val2, GB);
+	writeOperation(val1, val2, GB);
 }
 
 //Load SP + r8 into HL

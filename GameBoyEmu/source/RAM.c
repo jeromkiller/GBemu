@@ -10,7 +10,7 @@ RAM* RAM_init(void)
 		different parts of memory are linked to different parts of the hardware
 		but to the cpu its all the same.	*/ 
 	RAM* newRAM = (RAM*)malloc(0xffff);
-	memset(newRAM, 0, 0xffff);
+	memset(newRAM, 0xff, 0xffff);
 
 	//setup the default values
 	*(newRAM + 0xFF05) = 0;

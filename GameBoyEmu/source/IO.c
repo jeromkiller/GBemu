@@ -106,6 +106,13 @@ unsigned char use_internalClock(RAM* RAM_ptr)
 //print the serial data
 void print_serialInfo(RAM* RAM_ptr)
 {
-	char serialData = *(RAM_ptr + SERIAL_TRANSFER_DATA);
-	printf("%c", serialData);
+	//get the serial data
+	unsigned char serialData = *(RAM_ptr + SERIAL_TRANSFER_DATA);
+
+	//don't print extended ascii
+	if(serialData < 0x7F)
+	{
+		//print the character
+		printf("%c", serialData);
+	}
 }

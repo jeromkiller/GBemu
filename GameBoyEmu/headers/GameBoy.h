@@ -35,4 +35,4 @@ Interrupt_registers* getInterruptRegs(GameBoy_Instance* GB);
 Memory_Mapper* getMemMapper(GameBoy_Instance* GB);
 
 
-void WriteToMemory(unsigned char* value1, unsigned char* value2, GameBoy_Instance* GB);
+void writeOperation(unsigned char* value1, unsigned char* value2, GameBoy_Instance* GB);

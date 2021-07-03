@@ -64,4 +64,4 @@ void Mapper_dispose(Memory_Mapper* mapper);
 int check_gameboyLogo(RAM* RAM_ptr);
 
 //functions for writing to the rom bank
-void write_to_rom(unsigned char* valueLocation, Memory_Mapper* mapper, RAM* RAM_ptr);
+void write_to_rom(unsigned short writeLocation, unsigned char value, Memory_Mapper* mapper, RAM* RAM_ptr);
