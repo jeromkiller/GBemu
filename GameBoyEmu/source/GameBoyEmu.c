@@ -1,6 +1,7 @@
 // GameBoyEmu.c : Defines the entry point for the console application.
 //
 
+#include "GameBoyEmu.h"	
 #include "CPU.h"
 #include "RAM.h"
 #include "RomMapper.h"
@@ -11,7 +12,15 @@
 #include "Tools.h"
 //#include "OpcodeLookupTable.h"
 
-int main()
+int run(thread_data** threadData);
+
+int startGameboy(void* threadData_ptr)
+{
+	thread_data** sharedData = (thread_data**)(threadData_ptr);
+	return run(sharedData);
+}
+
+int run(thread_data** threadData)
 {
 	static char ROM_Path[] = {"./.roms/testRoms/cpu_instrs/cpu_instrs.gb\0"};
 	//startup
@@ -32,14 +41,6 @@ int main()
 		perform_timerOperation(getRAM(GameBoy), GameBoy->SystemTimer, &(GameBoy->LastSystemTimer), &(GameBoy->TimerStep));
 		fflush(stdout);
 	}
-
-//test bankswitching
-//load bank 1,
-unsigned char* writeloc = getRAM(GameBoy) + 0x2000;
-unsigned char writeval = 2;	
-OP_LD8(writeloc, &writeval, GameBoy);
-printf("%s\n", getRAM(GameBoy) + RAM_LOCATION_RAM_SWAPPABLE_START);
-
 
 ///////////////////////////////////////////////////////////////////////
 	gameBoy_dispose(GameBoy);

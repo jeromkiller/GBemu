@@ -128,7 +128,7 @@ void* get_shared_data_from_header(thread_data* data)
 	return data->data_ptr.rawPointer;
 }
 
-void relese_data(thread_data* data)
+void release_data(thread_data* data)
 {
 	//check if data is valid
 	if(NULL == data)

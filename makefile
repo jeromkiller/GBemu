@@ -26,7 +26,7 @@ OBJS := $(addprefix $(ODIR)/, $(patsubst %.c, %.o, $(notdir $(SRCS))))
 
 #excludes
 MAINEXCLUDES:=$(ODIR)/CPU_Test.o
-TESTEXCLUDES:=$(ODIR)/GameBoyEmu.o
+TESTEXCLUDES:=$(ODIR)/GameBoyEmu.o $(ODIR)/main.o
 
 #build .o files
 $(ODIR)/%.o : $(SDIR)/%.c $(HEAD) 

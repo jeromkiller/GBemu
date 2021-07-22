@@ -2,6 +2,8 @@
 
 #include <gdk/gdk.h>
 
+#define NUM_DATATYPES (2)
+
 //player input data
 typedef struct player_input_data_t
 {
@@ -63,4 +65,4 @@ player_input_data* get_player_input_data(thread_data* data);
 
 framebuffer_data* get_framebuffer_data(thread_data* data);
 
-void relese_data(thread_data* data);
+void release_data(thread_data* data);
