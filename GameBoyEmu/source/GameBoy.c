@@ -6,8 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-GameBoy_Instance* gameBoy_init(char* romPath)
+GameBoy_Instance* gameBoy_init(shared_Thread_Blocks* sharedBlocks, char* romPath)
 {
+
 	//create the gameboy datastructure
 	GameBoy_Instance* newGameBoy = (GameBoy_Instance*)malloc(sizeof(GameBoy_Instance));
 	if(NULL == newGameBoy)
@@ -15,6 +16,16 @@ GameBoy_Instance* gameBoy_init(char* romPath)
 		return NULL;
 	}
 	memset(newGameBoy, 0, sizeof(GameBoy_Instance));
+
+	if(NULL != sharedBlocks)
+	{
+		//claim ownership of the shared data for this instance of the emulator
+		claim_data(get_specified_header(sharedBlocks, SHARED_DATA_TYPE_PLAYER_INPUT));
+		newGameBoy->input = get_specified_header(sharedBlocks, SHARED_DATA_TYPE_PLAYER_INPUT);
+
+		claim_data(get_specified_header(sharedBlocks, SHARED_DATA_TYPE_FRAMEBUFFER));
+		newGameBoy->fb = get_specified_header(sharedBlocks, SHARED_DATA_TYPE_FRAMEBUFFER);
+	}
 
 	//create the datastrucutes required to run the gameboy
 	newGameBoy->CPU_ref = CPU_init();
@@ -33,6 +44,10 @@ void gameBoy_dispose(GameBoy_Instance* GameBoy)
 {
 	if(NULL != GameBoy)
 	{
+		//release our ownership of the shared data
+		free_shared_data(GameBoy->input);
+		free_shared_data(GameBoy->fb);
+
 		//first dispose the member structs
 		CPU_dispose(GameBoy->CPU_ref);
 		Mapper_dispose(GameBoy->MAPPER_ref);

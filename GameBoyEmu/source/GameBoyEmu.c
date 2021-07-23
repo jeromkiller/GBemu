@@ -8,23 +8,33 @@
 #include "Interrupt.h"
 #include "Opcodes.h"
 #include "IO.h"
+#include <unistd.h>
+
+#include <errno.h>
 
 #include "Tools.h"
 //#include "OpcodeLookupTable.h"
 
-int run(thread_data** threadData);
+int run(shared_Thread_Blocks* threadData);
+int checkpipe(int fd);
 
-int startGameboy(void* threadData_ptr)
+int startGameboy(shared_Thread_Blocks* threadData_ptr)
 {
-	thread_data** sharedData = (thread_data**)(threadData_ptr);
-	return run(sharedData);
+	return run(threadData_ptr);
 }
 
-int run(thread_data** threadData)
+int run(shared_Thread_Blocks* threadData)
 {
+	//get the in and output pipes
+	int readFD = threadData->gui_pipe[PIPE_READ];
+	int writeFD = threadData->emu_pipe[PIPE_WRITE];
+//	close(threadData->gui_pipe[PIPE_WRITE]);
+//	close(threadData->emu_pipe[PIPE_READ]);
+	
+
 	static char ROM_Path[] = {"./.roms/testRoms/cpu_instrs/cpu_instrs.gb\0"};
 	//startup
-	GameBoy_Instance* GameBoy = gameBoy_init(ROM_Path);
+	GameBoy_Instance* GameBoy = gameBoy_init(threadData, ROM_Path);
 	if(NULL == GameBoy)
 	{
 		printf("ERROR: A problem occured whilst creating the gameboy datastructure");
@@ -35,6 +45,12 @@ int run(thread_data** threadData)
 	//some user code for testing
 	while(getInterruptRegs(GameBoy)->CPU_status != CPU_STOPPED)
 	{
+		//check if we have to quit
+		if(checkpipe(readFD))
+		{
+			break;
+		}
+
 		check_interrupts(getInterruptRegs(GameBoy), getCPU(GameBoy), getRAM(GameBoy));
 		performNextOpcode(GameBoy);
 		perform_serialOperation(getRAM(GameBoy));
@@ -43,7 +59,24 @@ int run(thread_data** threadData)
 	}
 
 ///////////////////////////////////////////////////////////////////////
+//cleanup
 	gameBoy_dispose(GameBoy);
 
     return 0;
+}
+
+int checkpipe(int fd)
+{
+	//pipe read should be nonblocking
+	char inchars[2] = " "; //should be large enough, only one byte will be sent
+	int readchars = read(fd, inchars, 1);
+	if(readchars < 0)
+	{
+		int error = errno;
+	}
+	if(readchars > 0)
+	{
+		return 1;
+	}
+	return 0;
 }

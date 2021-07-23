@@ -5,10 +5,15 @@
 #include "RAM.h"
 #include "Interrupt.h"
 #include "RomMapper.h"
+#include "sharedData.h"
 
 //struct
 typedef struct GameBoy_Struct
 {
+	//shared thread data
+	player_input* input;
+	framebuffer* fb;
+
 	//pointers
 	CPU* CPU_ref;
 	RAM* RAM_ref;
@@ -24,7 +29,7 @@ typedef struct GameBoy_Struct
 
 //functions
 //build the gameboy structure, and all associated data structures
-GameBoy_Instance* gameBoy_init(char* romPath);
+GameBoy_Instance* gameBoy_init(shared_Thread_Blocks* sharedBlocks, char* romPath);
 
 void gameBoy_dispose(GameBoy_Instance* GB);
 

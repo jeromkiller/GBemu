@@ -33,7 +33,7 @@ int main(int argc, char *argv[] )
 
 	char* ROM_Path = argv[1];
 	//startup
-	GameBoy_Instance* GameBoy = gameBoy_init(ROM_Path);
+	GameBoy_Instance* GameBoy = gameBoy_init(NULL, ROM_Path);
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing

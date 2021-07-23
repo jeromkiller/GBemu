@@ -1,7 +1,19 @@
 #include <gtk/gtk.h>
+#include <stdio.h>
+#include <fcntl.h>
 #include "sharedData.h"
 #include "GameBoyEmu.h"
+#include <unistd.h>
+#include <errno.h>
 
+//global variables
+shared_Thread_Blocks* sharedData = NULL;
+GtkWidget *window = NULL;
+GThread* emulatorThread = NULL;
+
+//---------------------
+//-- signal handlers --
+//---------------------
 //handle player keypresses
 void handleKeyEvent(GtkWidget *widget, GdkEventKey *event, player_input* sharedInput)
 {
@@ -44,6 +56,24 @@ void handleKeyEvent(GtkWidget *widget, GdkEventKey *event, player_input* sharedI
 	release_data(sharedInput);
 }
 
+//handle exit signal
+void handleExit(GtkWidget *widget, GdkEvent *event, gpointer data)
+{
+	//let the emulator know that we're exiting
+	write(sharedData->gui_pipe[PIPE_WRITE], "X", 1);
+
+	//wait for the emulator to finish
+	g_thread_join(emulatorThread);
+	g_thread_unref(emulatorThread);
+	emulatorThread = NULL;
+
+	//clean up
+	free_shared_data(sharedData->input);
+	free_shared_data(sharedData->fb);
+	free(sharedData);
+	sharedData = NULL;
+}
+
 //build the GUI
 GtkWidget* buildGUI(GtkApplication* app)
 {
@@ -68,58 +98,48 @@ GtkWidget* buildGUI(GtkApplication* app)
 }
 
 //setup signals
-void setupSignals(GtkWidget* window, thread_data** sharedDataBlocks)
+void setupSignals(GtkWidget* window, shared_Thread_Blocks* sharedDataBlocks)
 {
-	player_input* input = NULL;
-	framebuffer* fb = NULL;
+	//get the 
+	player_input* input = get_specified_header(sharedDataBlocks, SHARED_DATA_TYPE_PLAYER_INPUT);
+	framebuffer* fb = get_specified_header(sharedDataBlocks, SHARED_DATA_TYPE_FRAMEBUFFER);
 
-	//itterate through the shared data blocks, to assign the pointers
-	for (int i = 0; i < NUM_DATATYPES; i++)
-	{
-		switch(sharedDataBlocks[i]->type)
-		{
-			case SHARED_DATA_TYPE_PLAYER_INPUT:
-				input = sharedDataBlocks[i];
-				break;
-			case SHARED_DATA_TYPE_FRAMEBUFFER:
-				fb = sharedDataBlocks[i];
-				break;
-			case SHARED_DATA_TYPE_NONE:
-				printf("ERROR: sharedDataBlocks[%d]->type is DATATYPE_NONE\n", i);
-				exit(0);
-				break;
-		}
-	}
 	if(input == NULL || fb == NULL)
 	{
 		printf("Error: shared data block pointers are NULL\n");
 		exit(0);
 	}
 
-	//todo: add a destroy signal for cleaning up the emulator
+	g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(handleExit), NULL);
 
 	//connect signal for player input
 	g_signal_connect(G_OBJECT(window), "key-press-event", G_CALLBACK(handleKeyEvent), input);
 	g_signal_connect(G_OBJECT(window), "key-release-event", G_CALLBACK(handleKeyEvent), input);
+
 }
 
 static void activate(GtkApplication* app, gpointer user_data)
 {
 	//build the gui
-	GtkWidget *window = buildGUI(app);
+	window = buildGUI(app);
 	gtk_widget_show_all(window);
 
 	//setup blocks of shared data
-	thread_data* sharedDataBlocks[NUM_DATATYPES];
-	sharedDataBlocks[0] = create_shared_input();
-	sharedDataBlocks[1] = create_shared_framebuffer();
+	shared_Thread_Blocks* sharedDataBlocks = (shared_Thread_Blocks*)malloc(sizeof(shared_Thread_Blocks));
+	sharedDataBlocks->input = create_shared_input();
+	sharedDataBlocks->fb = create_shared_framebuffer();
+	//create two pipes for comunication between the emulator and the GUI
+	int retval = pipe(sharedDataBlocks->gui_pipe);
+	retval = pipe(sharedDataBlocks->emu_pipe);
+
+	//keep a global copy so we can use it in signal handlers
+	sharedData = sharedDataBlocks;
 
 	setupSignals(window, sharedDataBlocks);
 
 	//start the gameboy emulator thread
-	/*GThread* emulatorThread =*/ g_thread_new("EmulatorCore", (GThreadFunc)startGameboy, sharedDataBlocks);
-	/*	currently not using emulator thread
-	*/
+	emulatorThread = g_thread_new("EmulatorCore", (GThreadFunc)startGameboy, sharedDataBlocks);
+
 }
 
 int main(int argc, char *argv[])

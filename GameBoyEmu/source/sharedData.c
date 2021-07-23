@@ -41,13 +41,37 @@ framebuffer* create_shared_framebuffer()
 }
 
 //functions for freeing the shared data blocks
+//assign yourself as a owner of the data
+void claim_data(thread_data* data)
+{
+	if(NULL == data)
+	{
+		printf("ERROR: cannot claim data, as it does not exist\n");
+		return;
+	}
+
+	if(data->owner_count < data->owner_max)
+	{
+		data->owner_count++;
+	}
+	else
+	{
+		printf("ERROR: cannot claim data, max owner count already reached");
+	}
+}
+
 //free player input data
 thread_data* free_shared_data(thread_data* data)
 {
+	if(NULL == data)
+	{
+		return NULL;
+	}
+	
 	if(data->owner_count <= 0)
 	{
 		//this data should already be freed, just crash for now.
-		printf("shared data block is an orphan, and should already have been freed\n");
+		printf("ERROR: shared data block is an orphan, and should already have been freed\n");
 		exit(0);
 	}
 
@@ -87,13 +111,13 @@ player_input_data* get_player_input_data(thread_data* data)
 	//check if the data is valid
 	if(NULL == data)
 	{
-		printf("Shared datablock does not exist\n");
+		printf("ERROR: Shared datablock does not exist\n");
 		return NULL;
 	}
 
 	if(data->type != SHARED_DATA_TYPE_PLAYER_INPUT)
 	{
-		printf("the supplied header is not for player input data\n");
+		printf("ERROR: the supplied header is not for player input data\n");
 		return NULL;
 	}
 
@@ -106,18 +130,32 @@ framebuffer_data* get_framebuffer_data(thread_data* data)
 	//check if the data is valid
 	if(NULL == data)
 	{
-		printf("Shared datablock does not exist\n");
+		printf("ERROR: Shared datablock does not exist\n");
 		return NULL;
 	}
 
 	if(data->type != SHARED_DATA_TYPE_FRAMEBUFFER)
 	{
-		printf("the supplied header is not for framebuffer data\n");
+		printf("ERROR: the supplied header is not for framebuffer data\n");
 		return NULL;
 	}
 
 	//lock the data and return a pointer to the data
 	return (framebuffer_data*)get_shared_data_from_header(data);
+}
+
+//I can probably get rid of this since i can just get get them straight from the datablocs struct
+thread_data* get_specified_header(shared_Thread_Blocks* dataBlocks, SharedDataType dataType)
+{
+	switch(dataType)
+	{
+		case SHARED_DATA_TYPE_PLAYER_INPUT:
+			return dataBlocks->input;
+		case SHARED_DATA_TYPE_FRAMEBUFFER:
+			return dataBlocks->fb;
+		default:
+			return NULL;
+	}
 }
 
 //lock the data and return a pointer to the data
@@ -133,7 +171,7 @@ void release_data(thread_data* data)
 	//check if data is valid
 	if(NULL == data)
 	{
-		printf("data is NULL and cannot be released");
+		printf("ERROR: data is NULL and cannot be released");
 	}
 
 	//unlock the data

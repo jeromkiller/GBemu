@@ -3,6 +3,8 @@
 #include <gdk/gdk.h>
 
 #define NUM_DATATYPES (2)
+#define PIPE_READ 0
+#define PIPE_WRITE 1
 
 //player input data
 typedef struct player_input_data_t
@@ -49,6 +51,16 @@ typedef struct thread_Data_t
 typedef thread_data player_input;
 typedef thread_data framebuffer;
 
+typedef struct shared_Thread_Blocks_t
+{
+	//shared data
+	player_input* input;
+	framebuffer* fb;
+	//pipes for ipc
+	int gui_pipe[2];//gui writes, emu reads
+	int emu_pipe[2];//emu writes, gui reads
+} shared_Thread_Blocks;
+
 //functions to create the shared data blocks
 //create player input data
 player_input* create_shared_input();
@@ -57,6 +69,8 @@ player_input* create_shared_input();
 framebuffer* create_shared_framebuffer();
 
 //functions for freeing the shared data blocks
+//assign yourself as a owner of the data
+void claim_data(thread_data* data);
 //free shared data
 thread_data* free_shared_data(thread_data* data);
 
@@ -64,5 +78,7 @@ thread_data* free_shared_data(thread_data* data);
 player_input_data* get_player_input_data(thread_data* data);
 
 framebuffer_data* get_framebuffer_data(thread_data* data);
+
+thread_data* get_specified_header(shared_Thread_Blocks* dataBlocks, SharedDataType dataType);
 
 void release_data(thread_data* data);

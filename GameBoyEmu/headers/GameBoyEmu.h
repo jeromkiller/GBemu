@@ -4,4 +4,6 @@
 #include <gdk/gdk.h>
 
 //start the gameboy emulator process
-int startGameboy(void* threadData_ptr);
+int startGameboy(shared_Thread_Blocks* threadData_ptr);
+
+int stopGameboy(void);
