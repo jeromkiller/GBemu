@@ -1,9 +1,10 @@
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include "sharedData.h"
 #include "GameBoyEmu.h"
-#include <unistd.h>
+
 #include <errno.h>
 
 //global variables
@@ -129,8 +130,16 @@ static void activate(GtkApplication* app, gpointer user_data)
 	sharedDataBlocks->input = create_shared_input();
 	sharedDataBlocks->fb = create_shared_framebuffer();
 	//create two pipes for comunication between the emulator and the GUI
-	int retval = pipe(sharedDataBlocks->gui_pipe);
-	retval = pipe(sharedDataBlocks->emu_pipe);
+	pipe(sharedDataBlocks->gui_pipe);
+	pipe(sharedDataBlocks->emu_pipe);
+
+	//make the pipes non-blocking
+	int flags = fcntl(sharedDataBlocks->gui_pipe[PIPE_READ], F_GETFL, 0);
+	flags |= O_NONBLOCK;
+	fcntl(sharedDataBlocks->gui_pipe[PIPE_READ], F_SETFL, flags);
+	flags = fcntl(sharedDataBlocks->gui_pipe[PIPE_WRITE], F_GETFL, 0);
+	flags |= O_NONBLOCK;
+	fcntl(sharedDataBlocks->gui_pipe[PIPE_WRITE], F_SETFL, flags);
 
 	//keep a global copy so we can use it in signal handlers
 	sharedData = sharedDataBlocks;

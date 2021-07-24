@@ -27,10 +27,7 @@ int run(shared_Thread_Blocks* threadData)
 {
 	//get the in and output pipes
 	int readFD = threadData->gui_pipe[PIPE_READ];
-	int writeFD = threadData->emu_pipe[PIPE_WRITE];
-//	close(threadData->gui_pipe[PIPE_WRITE]);
-//	close(threadData->emu_pipe[PIPE_READ]);
-	
+	int writeFD = threadData->emu_pipe[PIPE_WRITE];	
 
 	static char ROM_Path[] = {"./.roms/testRoms/cpu_instrs/cpu_instrs.gb\0"};
 	//startup
@@ -72,7 +69,10 @@ int checkpipe(int fd)
 	int readchars = read(fd, inchars, 1);
 	if(readchars < 0)
 	{
-		int error = errno;
+		if(errno == EAGAIN)
+		{
+			return 0;
+		}
 	}
 	if(readchars > 0)
 	{
