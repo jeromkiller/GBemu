@@ -113,6 +113,10 @@ void print_serialInfo(RAM* RAM_ptr)
 	if(serialData < 0x7F)
 	{
 		//print the character
-		printf("%c", serialData);
+		int retval = printf("%c", serialData);
+		if(retval < 0)
+		{
+			printf("\nError: could not print character\n");
+		}
 	}
 }

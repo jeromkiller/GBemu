@@ -54,14 +54,19 @@ void handleKeyEvent(GtkWidget *widget, GdkEventKey *event, player_input* sharedI
 	}
 
 	//release the data
-	release_data(sharedInput);
+	unlock_shared_data(sharedInput);
 }
 
 //handle exit signal
-void handleExit(GtkWidget *widget, GdkEvent *event, gpointer data)
+void handleExit(GtkWidget *widget, GdkEvent *event, emu_status_flags* sharedFlags)
 {
+	//for some reason sharedFlags is always 0x01 here
+
 	//let the emulator know that we're exiting
-	write(sharedData->gui_pipe[PIPE_WRITE], "X", 1);
+	//lock the mutex and get the data
+	emu_status_flags_data* status_flags = get_status_flags_data(get_shared_status_flags(sharedData));
+	status_flags->flags |= STATUS_FLAG_EMULATOR_STOPING;
+	unlock_shared_data(get_shared_status_flags(sharedData));
 
 	//wait for the emulator to finish
 	g_thread_join(emulatorThread);
@@ -69,9 +74,7 @@ void handleExit(GtkWidget *widget, GdkEvent *event, gpointer data)
 	emulatorThread = NULL;
 
 	//clean up
-	free_shared_data(sharedData->input);
-	free_shared_data(sharedData->fb);
-	free(sharedData);
+	destroy_shared_Thread_Blocks(sharedData);
 	sharedData = NULL;
 }
 
@@ -101,17 +104,19 @@ GtkWidget* buildGUI(GtkApplication* app)
 //setup signals
 void setupSignals(GtkWidget* window, shared_Thread_Blocks* sharedDataBlocks)
 {
-	//get the 
-	player_input* input = get_specified_header(sharedDataBlocks, SHARED_DATA_TYPE_PLAYER_INPUT);
-	framebuffer* fb = get_specified_header(sharedDataBlocks, SHARED_DATA_TYPE_FRAMEBUFFER);
+	//get the shared data headers
+	emu_status_flags* emu_status = get_shared_status_flags(sharedDataBlocks);
+	player_input* input = get_shared_player_input(sharedDataBlocks);
+	framebuffer* fb = get_shared_framebuffer(sharedDataBlocks);
 
-	if(input == NULL || fb == NULL)
+	if(emu_status == NULL || input == NULL || fb == NULL)
 	{
 		printf("Error: shared data block pointers are NULL\n");
 		exit(0);
 	}
 
-	g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(handleExit), NULL);
+	//connect the signals, and assign the shared data headers to the signal callbacks
+	g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(handleExit), emu_status);
 
 	//connect signal for player input
 	g_signal_connect(G_OBJECT(window), "key-press-event", G_CALLBACK(handleKeyEvent), input);
@@ -126,20 +131,7 @@ static void activate(GtkApplication* app, gpointer user_data)
 	gtk_widget_show_all(window);
 
 	//setup blocks of shared data
-	shared_Thread_Blocks* sharedDataBlocks = (shared_Thread_Blocks*)malloc(sizeof(shared_Thread_Blocks));
-	sharedDataBlocks->input = create_shared_input();
-	sharedDataBlocks->fb = create_shared_framebuffer();
-	//create two pipes for comunication between the emulator and the GUI
-	pipe(sharedDataBlocks->gui_pipe);
-	pipe(sharedDataBlocks->emu_pipe);
-
-	//make the pipes non-blocking
-	int flags = fcntl(sharedDataBlocks->gui_pipe[PIPE_READ], F_GETFL, 0);
-	flags |= O_NONBLOCK;
-	fcntl(sharedDataBlocks->gui_pipe[PIPE_READ], F_SETFL, flags);
-	flags = fcntl(sharedDataBlocks->gui_pipe[PIPE_WRITE], F_GETFL, 0);
-	flags |= O_NONBLOCK;
-	fcntl(sharedDataBlocks->gui_pipe[PIPE_WRITE], F_SETFL, flags);
+	shared_Thread_Blocks* sharedDataBlocks = create_shared_Thread_Blocks();
 
 	//keep a global copy so we can use it in signal handlers
 	sharedData = sharedDataBlocks;
@@ -154,13 +146,13 @@ static void activate(GtkApplication* app, gpointer user_data)
 int main(int argc, char *argv[])
 {
 	GtkApplication *app;
-	int status;
+	int emu_status;
 
 	app = gtk_application_new("com.github.jeromkiller.gbEmu", G_APPLICATION_FLAGS_NONE);	
 	g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
-	status = g_application_run (G_APPLICATION (app), argc, argv);
+	emu_status = g_application_run (G_APPLICATION (app), argc, argv);
 
 	g_object_unref(app);
 
-	return status;
+	return emu_status;
 }

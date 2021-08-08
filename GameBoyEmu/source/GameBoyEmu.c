@@ -15,20 +15,18 @@
 #include "Tools.h"
 //#include "OpcodeLookupTable.h"
 
-int run(shared_Thread_Blocks* threadData);
-int checkpipe(int fd);
+static int run(shared_Thread_Blocks* threadData);
+static int check_emu_status(emu_status_flags* status);
+static void check_key_presses(player_input* input);
 
 int startGameboy(shared_Thread_Blocks* threadData_ptr)
 {
 	return run(threadData_ptr);
 }
 
-int run(shared_Thread_Blocks* threadData)
+static int run(shared_Thread_Blocks* threadData)
 {
 	//get the in and output pipes
-	int readFD = threadData->gui_pipe[PIPE_READ];
-	int writeFD = threadData->emu_pipe[PIPE_WRITE];	
-
 	static char ROM_Path[] = {"./.roms/testRoms/cpu_instrs/cpu_instrs.gb\0"};
 	//startup
 	GameBoy_Instance* GameBoy = gameBoy_init(threadData, ROM_Path);
@@ -40,14 +38,9 @@ int run(shared_Thread_Blocks* threadData)
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
-	while(getInterruptRegs(GameBoy)->CPU_status != CPU_STOPPED)
+	while(!check_emu_status(GameBoy->emu_status))
 	{
-		//check if we have to quit
-		if(checkpipe(readFD))
-		{
-			break;
-		}
-
+		check_key_presses(GameBoy->input);
 		check_interrupts(getInterruptRegs(GameBoy), getCPU(GameBoy), getRAM(GameBoy));
 		performNextOpcode(GameBoy);
 		perform_serialOperation(getRAM(GameBoy));
@@ -62,21 +55,37 @@ int run(shared_Thread_Blocks* threadData)
     return 0;
 }
 
-int checkpipe(int fd)
+static int check_emu_status(emu_status_flags* status)
 {
-	//pipe read should be nonblocking
-	char inchars[2] = " "; //should be large enough, only one byte will be sent
-	int readchars = read(fd, inchars, 1);
-	if(readchars < 0)
+	//lock the malloc and get the data
+	emu_status_flags_data* status_flags = get_status_flags_data(status);
+	status_flags_t flags_value = status_flags->flags;
+	unlock_shared_data(status);
+	//check if the gameboy is running
+	return (flags_value & STATUS_FLAG_EMULATOR_STOPING);
+}
+
+static void check_key_presses(player_input* input)
+{
+	//lock the malloc and get the data
+	player_input_data* input_data = get_player_input_data(input);
+
+	if(input_data->input_up)
 	{
-		if(errno == EAGAIN)
-		{
-			return 0;
-		}
+		printf("UP\n");
 	}
-	if(readchars > 0)
+	if(input_data->input_down)
 	{
-		return 1;
+		printf("DOWN\n");
 	}
-	return 0;
+	if(input_data->input_left)
+	{
+		printf("LEFT\n");
+	}
+	if(input_data->input_right)
+	{
+		printf("RIGHT\n");
+	}
+
+	unlock_shared_data(input);
 }

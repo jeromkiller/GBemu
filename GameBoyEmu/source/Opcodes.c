@@ -53,7 +53,7 @@ void performOpcode(GameBoy_Instance* GB, unsigned char opcode)
 {
 	Instruction* instr = getNormalOpcode(opcode);
 
-	void* param1 = getDataFromParameter(GB, instr->param1);
+	void* param1 = getDataFromParameter(GB, instr->param1);	
 	void* param2 = getDataFromParameter(GB, instr->param2);
 
 	instr->Instruction(param1, param2, GB);

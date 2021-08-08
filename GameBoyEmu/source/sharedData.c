@@ -2,12 +2,88 @@
 #include <string.h>
 #include <stdio.h>
 
-//private functions
-thread_data* create_shared_data_header();
-void* get_shared_data_from_header(thread_data* data);
+//private structures
+typedef enum SharedDataType_t
+{
+	SHARED_DATA_TYPE_NONE = 0,
+	SHARED_DATA_TYPE_STATUS,
+	SHARED_DATA_TYPE_FRAMEBUFFER,
+	SHARED_DATA_TYPE_PLAYER_INPUT,
+}SharedDataType;
 
-//the creator of this block is the first owner
-player_input* create_shared_input()
+const static char* sharedDataTypeNames[] = {
+	"None",
+	"Status",
+	"Framebuffer",
+	"PlayerInput",
+};
+
+//data structures for sharing data between threads
+struct thread_Data_Header_t
+{
+	GMutex data_mutex;
+	SharedDataType type;
+	int owner_max;
+	int owner_count;
+	union data_ptr_t
+	{
+		void* rawPointer;
+		emu_status_flags_data* status_flags;
+		framebuffer_data* framebuffer;
+		player_input_data* player_input;
+	} data_ptr;
+};
+
+struct shared_Thread_Blocks_t
+{
+	//shared data
+	emu_status_flags* emu_status;
+	player_input* input;
+	framebuffer* fb;
+};
+
+//private function definitions
+static thread_Data_Header* create_shared_data_header();
+static emu_status_flags* create_shared_status_flags();
+static player_input* create_shared_input();
+static framebuffer* create_shared_framebuffer();
+static int validate_shared_data(thread_Data_Header* data, SharedDataType type);
+static void* get_shared_data_from_header(thread_Data_Header* data);
+
+//create the header for the data block
+//the creator of this block is the first owner of the shared data inside
+static thread_Data_Header* create_shared_data_header()
+{
+	//allocate the data header for the data
+	thread_Data_Header* shared_data_header = malloc(sizeof(thread_Data_Header));
+	shared_data_header->owner_count = 0;
+	shared_data_header->owner_max = 0;
+	shared_data_header->type = SHARED_DATA_TYPE_NONE;
+
+	//create the mutex
+	g_mutex_init(&shared_data_header->data_mutex);
+
+	return shared_data_header;
+}
+
+//create the emu_status flags
+static emu_status_flags* create_shared_status_flags()
+{
+	//create the header for the emu_status flags dat
+	emu_status_flags* shared_block = (emu_status_flags*)create_shared_data_header();
+	shared_block->type = SHARED_DATA_TYPE_STATUS;
+	shared_block->owner_max = 2;
+	shared_block->owner_count = 1;
+
+	//create the emu_status flags struct
+	emu_status_flags_data* status_data = (emu_status_flags_data*)malloc(sizeof(emu_status_flags_data));
+	memset(status_data, 0, sizeof(emu_status_flags_data));
+	shared_block->data_ptr.status_flags = status_data;
+	
+	return shared_block;
+}
+
+static player_input* create_shared_input()
 {
 	//create the header for the input data
 	player_input* shared_block = (player_input*)create_shared_data_header();
@@ -24,7 +100,7 @@ player_input* create_shared_input()
 }
 
 //create framebuffer data
-framebuffer* create_shared_framebuffer()
+static framebuffer* create_shared_framebuffer()
 {
 	//create the header for the framebuffer data
 	framebuffer* shared_block = (framebuffer*)create_shared_data_header();
@@ -40,32 +116,12 @@ framebuffer* create_shared_framebuffer()
 	return shared_block;
 }
 
-//functions for freeing the shared data blocks
-//assign yourself as a owner of the data
-void claim_data(thread_data* data)
-{
-	if(NULL == data)
-	{
-		printf("ERROR: cannot claim data, as it does not exist\n");
-		return;
-	}
-
-	if(data->owner_count < data->owner_max)
-	{
-		data->owner_count++;
-	}
-	else
-	{
-		printf("ERROR: cannot claim data, max owner count already reached");
-	}
-}
-
 //free player input data
-thread_data* free_shared_data(thread_data* data)
+void free_shared_data(thread_Data_Header* data)
 {
 	if(NULL == data)
 	{
-		return NULL;
+		return;
 	}
 	
 	if(data->owner_count <= 0)
@@ -86,38 +142,103 @@ thread_data* free_shared_data(thread_data* data)
 		free(data);
 		data = NULL;
 	}
-
-	return NULL;
 }
 
-//create the header for the data block
-thread_data* create_shared_data_header()
+//lock the data and return a pointer to the data
+static void* get_shared_data_from_header(thread_Data_Header* data)
 {
-	//allocate the data header for the data
-	thread_data* shared_data_header = malloc(sizeof(thread_data));
-	shared_data_header->owner_count = 0;
-	shared_data_header->owner_max = 0;
-	shared_data_header->type = SHARED_DATA_TYPE_NONE;
+	//wait untill the data is accasable
+	g_mutex_lock(&data->data_mutex);
+	return data->data_ptr.rawPointer;
+}
 
-	//create the mutex
-	g_mutex_init(&shared_data_header->data_mutex);
+//functions for freeing the shared data blocks
+//assign yourself as a owner of the data
+void claim_thread_data(thread_Data_Header* data)
+{
+	if(NULL == data)
+	{
+		printf("ERROR: cannot claim data, as it does not exist\n");
+		return;
+	}
 
-	return shared_data_header;
+	if(data->owner_count < data->owner_max)
+	{
+		data->owner_count++;
+	}
+	else
+	{
+		printf("ERROR: cannot claim data, max owner count already reached");
+	}
+}
+
+shared_Thread_Blocks* create_shared_Thread_Blocks(void)
+{
+	//create the shared data blocks
+	shared_Thread_Blocks* shared_blocks = (shared_Thread_Blocks*)malloc(sizeof(shared_Thread_Blocks));
+	memset(shared_blocks, 0, sizeof(shared_Thread_Blocks));
+	shared_blocks->emu_status = create_shared_status_flags();
+	shared_blocks->input = create_shared_input();
+	shared_blocks->fb = create_shared_framebuffer();
+	return shared_blocks;
+}
+void destroy_shared_Thread_Blocks(shared_Thread_Blocks* shared_data)
+{
+	if(NULL == shared_data)
+	{
+		return;
+	}
+	
+	//free the shared data blocks
+	free_shared_data(shared_data->emu_status);
+	free_shared_data(shared_data->input);
+	free_shared_data(shared_data->fb);
+	free(shared_data);
+}
+
+emu_status_flags* get_shared_status_flags(shared_Thread_Blocks* dataBlocks)
+{
+	if(NULL == dataBlocks)
+	{
+		printf("ERROR: cannot get emu_status flags, as shared data blocks are NULL\n");
+		return NULL;
+	}
+	return dataBlocks->emu_status;
+}
+
+player_input* get_shared_player_input(shared_Thread_Blocks* dataBlocks)
+{
+	if(NULL == dataBlocks)
+	{
+		printf("ERROR: cannot get player input, as shared data blocks are NULL\n");
+		return NULL;
+	}
+	return dataBlocks->input;
+}
+framebuffer* get_shared_framebuffer(shared_Thread_Blocks* dataBlocks)
+{
+	if(NULL == dataBlocks)
+	{
+		printf("ERROR: cannot get framebuffer, as shared data blocks are NULL\n");
+		return NULL;
+	}
+	return dataBlocks->fb;
+}
+
+emu_status_flags_data* get_status_flags_data(thread_Data_Header* data)
+{
+	if(!validate_shared_data(data, SHARED_DATA_TYPE_STATUS))
+	{
+		return NULL;
+	}
+	return (emu_status_flags_data*)get_shared_data_from_header(data);
 }
 
 //locks the mutex and gives a pointer to the player_input data
-player_input_data* get_player_input_data(thread_data* data)
+player_input_data* get_player_input_data(thread_Data_Header* data)
 {
-	//check if the data is valid
-	if(NULL == data)
+	if(!validate_shared_data(data, SHARED_DATA_TYPE_PLAYER_INPUT))
 	{
-		printf("ERROR: Shared datablock does not exist\n");
-		return NULL;
-	}
-
-	if(data->type != SHARED_DATA_TYPE_PLAYER_INPUT)
-	{
-		printf("ERROR: the supplied header is not for player input data\n");
 		return NULL;
 	}
 
@@ -125,18 +246,10 @@ player_input_data* get_player_input_data(thread_data* data)
 	return (player_input_data*)get_shared_data_from_header(data);
 }
 
-framebuffer_data* get_framebuffer_data(thread_data* data)
+framebuffer_data* get_framebuffer_data(thread_Data_Header* data)
 {
-	//check if the data is valid
-	if(NULL == data)
+	if(!validate_shared_data(data, SHARED_DATA_TYPE_FRAMEBUFFER))
 	{
-		printf("ERROR: Shared datablock does not exist\n");
-		return NULL;
-	}
-
-	if(data->type != SHARED_DATA_TYPE_FRAMEBUFFER)
-	{
-		printf("ERROR: the supplied header is not for framebuffer data\n");
 		return NULL;
 	}
 
@@ -144,29 +257,7 @@ framebuffer_data* get_framebuffer_data(thread_data* data)
 	return (framebuffer_data*)get_shared_data_from_header(data);
 }
 
-//I can probably get rid of this since i can just get get them straight from the datablocs struct
-thread_data* get_specified_header(shared_Thread_Blocks* dataBlocks, SharedDataType dataType)
-{
-	switch(dataType)
-	{
-		case SHARED_DATA_TYPE_PLAYER_INPUT:
-			return dataBlocks->input;
-		case SHARED_DATA_TYPE_FRAMEBUFFER:
-			return dataBlocks->fb;
-		default:
-			return NULL;
-	}
-}
-
-//lock the data and return a pointer to the data
-void* get_shared_data_from_header(thread_data* data)
-{
-	//wait untill the data is accasable
-	g_mutex_lock(&data->data_mutex);
-	return data->data_ptr.rawPointer;
-}
-
-void release_data(thread_data* data)
+void unlock_shared_data(thread_Data_Header* data)
 {
 	//check if data is valid
 	if(NULL == data)
@@ -176,4 +267,23 @@ void release_data(thread_data* data)
 
 	//unlock the data
 	g_mutex_unlock(&data->data_mutex);
+}
+
+//check if the requested data is the same as the one supplied
+//returns 1 if the data is the same, 0 if it is not
+static int validate_shared_data(thread_Data_Header* data, SharedDataType type)
+{
+	if(NULL == data)
+	{
+		printf("ERROR: Shared datablock does not exist\n");
+		return 0;
+	}
+
+	if(data->type != type)
+	{
+		printf("ERROR: the supplied header %s, is not %s\n", sharedDataTypeNames[data->type], sharedDataTypeNames[type]);
+		return 0;
+	}
+
+	return 1;
 }

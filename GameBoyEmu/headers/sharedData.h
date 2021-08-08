@@ -2,9 +2,23 @@
 
 #include <gdk/gdk.h>
 
-#define NUM_DATATYPES (2)
-#define PIPE_READ 0
-#define PIPE_WRITE 1
+//forward declarations
+typedef struct shared_Thread_Blocks_t shared_Thread_Blocks;
+typedef struct thread_Data_Header_t thread_Data_Header;
+typedef thread_Data_Header emu_status_flags;
+typedef thread_Data_Header player_input;
+typedef thread_Data_Header framebuffer;
+
+//emu_status flags data
+#define STATUS_FLAG_EMULATOR_STOPING (1)
+#define STATUS_FLAG_EMULATOR_PAUSED (2)
+#define STATUS_FLAG_EMULATOR_DOUBLE_SPEED (4)
+
+typedef unsigned int status_flags_t;
+typedef struct emu_status_flags_data_t
+{
+	status_flags_t flags;
+}emu_status_flags_data;
 
 //player input data
 typedef struct player_input_data_t
@@ -26,59 +40,30 @@ typedef struct framebuffer_data_t
 	GdkPixbuf* framebuff;
 } framebuffer_data;
 
-typedef enum SharedDataType_t
-{
-	SHARED_DATA_TYPE_NONE = 0,
-	SHARED_DATA_TYPE_FRAMEBUFFER,
-	SHARED_DATA_TYPE_PLAYER_INPUT,
-} SharedDataType;
+//create a new shared thread data structure, contains all the data needed for a thread
+//caller of this function is the first owner of the data
+shared_Thread_Blocks* create_shared_Thread_Blocks(void);
+//free a shared thread data structure, caller of this function releases the data inside
+//NOTE: the thread_data blocks are not freed if there are still owners of the data
+void destroy_shared_Thread_Blocks(shared_Thread_Blocks* shared_data);
 
-//data structures for sharing data between threads
-typedef struct thread_Data_t
-{
-	GMutex data_mutex;
-	SharedDataType type;
-	int owner_max;
-	int owner_count;
-	union data_ptr_t
-	{
-		void* rawPointer;
-		framebuffer_data* framebuffer;
-		player_input_data* player_input;
-	} data_ptr;
-} thread_data;
-
-typedef thread_data player_input;
-typedef thread_data framebuffer;
-
-typedef struct shared_Thread_Blocks_t
-{
-	//shared data
-	player_input* input;
-	framebuffer* fb;
-	//pipes for ipc
-	int gui_pipe[2];//gui writes, emu reads
-	int emu_pipe[2];//emu writes, gui reads
-} shared_Thread_Blocks;
-
-//functions to create the shared data blocks
-//create player input data
-player_input* create_shared_input();
-
-//create framebuffer data
-framebuffer* create_shared_framebuffer();
-
-//functions for freeing the shared data blocks
 //assign yourself as a owner of the data
-void claim_data(thread_data* data);
-//free shared data
-thread_data* free_shared_data(thread_data* data);
+void claim_thread_data(thread_Data_Header* data);
+//release your ownership of the data, free it if you are the last owner
+void free_shared_data(thread_Data_Header* data);
+
+//functions for setting the data in the datablock
+emu_status_flags* get_shared_status_flags(shared_Thread_Blocks* dataBlocks);
+player_input* get_shared_player_input(shared_Thread_Blocks* dataBlocks);
+framebuffer* get_shared_framebuffer(shared_Thread_Blocks* dataBlocks);
 
 //functions for getting the data in the datablock
-player_input_data* get_player_input_data(thread_data* data);
+//lock the emu_status flags data and return a pointer to it
+emu_status_flags_data* get_status_flags_data(thread_Data_Header* data);
+//lock player input data and return a pointer to it
+player_input_data* get_player_input_data(thread_Data_Header* data);
+//lock framebuffer data and return a pointer to it
+framebuffer_data* get_framebuffer_data(thread_Data_Header* data);
+//unlock shared data
+void unlock_shared_data(thread_Data_Header* data);
 
-framebuffer_data* get_framebuffer_data(thread_data* data);
-
-thread_data* get_specified_header(shared_Thread_Blocks* dataBlocks, SharedDataType dataType);
-
-void release_data(thread_data* data);

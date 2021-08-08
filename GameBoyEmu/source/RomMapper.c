@@ -76,6 +76,10 @@ Memory_Mapper* Mapper_init(char* romPath, RAM* RAM_ptr)
 
 void Mapper_dispose(Memory_Mapper* mapper)
 {
+	if(mapper == NULL)
+	{
+		return;
+	}
 	//first clear the ram banks
 	{
 		Data_bank* currentBank = mapper->ramBank_ptr;

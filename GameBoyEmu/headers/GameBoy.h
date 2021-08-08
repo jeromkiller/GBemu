@@ -11,6 +11,7 @@
 typedef struct GameBoy_Struct
 {
 	//shared thread data
+	emu_status_flags* emu_status;
 	player_input* input;
 	framebuffer* fb;
 

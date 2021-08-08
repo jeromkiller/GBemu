@@ -20,11 +20,14 @@ GameBoy_Instance* gameBoy_init(shared_Thread_Blocks* sharedBlocks, char* romPath
 	if(NULL != sharedBlocks)
 	{
 		//claim ownership of the shared data for this instance of the emulator
-		claim_data(get_specified_header(sharedBlocks, SHARED_DATA_TYPE_PLAYER_INPUT));
-		newGameBoy->input = get_specified_header(sharedBlocks, SHARED_DATA_TYPE_PLAYER_INPUT);
+		newGameBoy->emu_status = get_shared_status_flags(sharedBlocks);
+		claim_thread_data(newGameBoy->emu_status);
 
-		claim_data(get_specified_header(sharedBlocks, SHARED_DATA_TYPE_FRAMEBUFFER));
-		newGameBoy->fb = get_specified_header(sharedBlocks, SHARED_DATA_TYPE_FRAMEBUFFER);
+		newGameBoy->input = get_shared_player_input(sharedBlocks);
+		claim_thread_data(newGameBoy->input);
+
+		newGameBoy->fb = get_shared_framebuffer(sharedBlocks);
+		claim_thread_data(newGameBoy->fb);
 	}
 
 	//create the datastrucutes required to run the gameboy
@@ -45,6 +48,7 @@ void gameBoy_dispose(GameBoy_Instance* GameBoy)
 	if(NULL != GameBoy)
 	{
 		//release our ownership of the shared data
+		free_shared_data(GameBoy->emu_status);
 		free_shared_data(GameBoy->input);
 		free_shared_data(GameBoy->fb);
 
