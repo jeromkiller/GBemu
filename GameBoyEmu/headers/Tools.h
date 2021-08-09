@@ -19,6 +19,8 @@ void printHex16bit(short value);
 
 //dumps the values in the CPU registers
 void printCPU(CPU* CPU_ptr);
+//print the values in the CPU registers, in one line
+void printCPUFlat(CPU* CPU_ptr);
 
 //dumps the last 10 entries on the stack
 void printStack(CPU* CPU_ptr, RAM* RAM_ptr);

@@ -89,14 +89,28 @@ unsigned char inRange(unsigned short writeLocation, unsigned short RangeStart, u
 	return ((writeLocation >= RangeStart) && (writeLocation <= RangeEnd));
 }
 
+unsigned char inPointerRange(void* writeLocation, void* RangeStart, void* RangeEnd)
+{
+	return ((writeLocation >= RangeStart) && (writeLocation <= RangeEnd));
+}
+
 
 void writeOperation(unsigned char* value1, unsigned char* value2, GameBoy_Instance* GB)
 {
 	//check if the write is done to a special part of memory
 	RAM* ram = getRAM(GB);
-	unsigned short writeLocation = value1 - ram;
-	if(inRange(writeLocation, RAM_START, RAM_END))
+	if(inPointerRange(value1, ram + RAM_START, ram + RAM_END))
 	{
+		unsigned short writeLocation = 0;
+		if(value1 > ram)
+		{
+			writeLocation = (unsigned short)(value1 - ram);
+		}
+		else
+		{
+			writeLocation = (unsigned short)(ram - value1);
+		}
+		
 		//check if the write is to a special address
 		switch(writeLocation)
 		{

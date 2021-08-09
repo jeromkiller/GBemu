@@ -58,6 +58,12 @@ void printCPU(CPU* CPU_ptr)
 	printf("\n\n");
 }
 
+
+void printCPUFlat(CPU* CPU_ptr)
+{
+	printf("AF: %04x,  BC: %04x,  DE: %04x,  HL: %04x,  SP: %04x,  PC: %04x  ", CPU_ptr->AF, CPU_ptr->BC, CPU_ptr->DE, CPU_ptr->HL, CPU_ptr->SP, CPU_ptr->PC);
+}
+
 //test thingy
 void test(void *value1, void *value2) 
 {

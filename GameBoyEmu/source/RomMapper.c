@@ -49,6 +49,7 @@ Memory_Mapper* Mapper_init(char* romPath, RAM* RAM_ptr)
 	}
 
 	//write to rom bank 0
+	fseek(romFile, 0, SEEK_SET);
 	fread(RAM_ptr, sizeof(char), ROM_BANK_SIZE, romFile);
 	if( ferror(romFile) != 0)
 	{
