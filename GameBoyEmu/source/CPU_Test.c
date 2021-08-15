@@ -37,12 +37,13 @@ int main(int argc, char *argv[] )
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
-	while(GameBoy->CycleNumber < 50000000)	//the cpu spools in the interrupt test, so i can't use that as a check anymore :P
+	TimerData* Timer = gameboy_getTimer(GameBoy);
+	while(Timer->CycleNumber < 50000000)	//the cpu spools in the interrupt test, so i can't use that as a check anymore :P
 	{
-		check_interrupts(getInterruptRegs(GameBoy), getCPU(GameBoy), getRAM(GameBoy));
+		check_interrupts(gameboy_getInterruptRegs(GameBoy), gameboy_getCPU(GameBoy), gameboy_getRAM(GameBoy));
 		performNextOpcode(GameBoy);
-		perform_serialOperation(getRAM(GameBoy));
-		perform_timerOperation(getRAM(GameBoy), GameBoy->SystemTimer, &(GameBoy->LastSystemTimer), &(GameBoy->TimerStep));
+		perform_serialOperation(gameboy_getRAM(GameBoy));
+		perform_timerOperation(gameboy_getRAM(GameBoy), Timer->SystemTimer, &(Timer->LastSystemTimer), &(Timer->TimerStep));
 		fflush(stdout);
 	}	
 

@@ -23,21 +23,21 @@ unsigned short* Read_PC16(GameBoy_Instance* GB);
 //read the value in memory at the Program Counter, increase it by 1 and return the read value.
 unsigned char* Read_PC8(GameBoy_Instance* GB) 
 {
-	return (GB->RAM_ref + (GB->CPU_ref->PC)++);
+	return (gameboy_getRAM(GB) + (gameboy_getCPU(GB)->PC)++);
 }
 
 //read the next two bytes, increase the pc by 2
 unsigned short* Read_PC16(GameBoy_Instance* GB)
 {
-	unsigned short* ramLocation = (unsigned short*)(GB->RAM_ref + GB->CPU_ref->PC);
-	GB->CPU_ref->PC += 2;
+	unsigned short* ramLocation = (unsigned short*)(gameboy_getRAM(GB) + gameboy_getCPU(GB)->PC);
+	gameboy_getCPU(GB)->PC += 2;
 	return ramLocation;
 }
 
 void performNextOpcode(GameBoy_Instance* GB)
 {
 	//perform the next opcode if the pcu is running
-	if(getInterruptRegs(GB)->CPU_status == CPU_RUNNING)
+	if(gameboy_getInterruptRegs(GB)->CPU_status == CPU_RUNNING)
 	{
 		unsigned char opcode = *Read_PC8(GB);
 		performOpcode(GB, opcode);
@@ -61,7 +61,7 @@ void performOpcode(GameBoy_Instance* GB, unsigned char opcode)
 
 void* getDataFromParameter(GameBoy_Instance* GB, Opcode_Parameter param)
 {
-	CPU* CPU_ptr = getCPU(GB);
+	CPU* CPU_ptr = gameboy_getCPU(GB);
 	switch (param)
 	{
 	case NONE:
@@ -108,14 +108,14 @@ void* getDataFromParameter(GameBoy_Instance* GB, Opcode_Parameter param)
 	{
 		addCycleCount(GB, 2);
 		unsigned short address = 0xFF00 + *Read_PC8(GB);
-		return GB->RAM_ref + address;
+		return gameboy_getRAM(GB) + address;
 	}
 	case ADDRESS_16BIT:
 	{
 		//LSB first, i don't know if this works right, right now...
 		addCycleCount(GB, 3);
 		unsigned short address = *Read_PC16(GB);
-		return GB->RAM_ref + address;
+		return gameboy_getRAM(GB) + address;
 	}
 	case RELATIVE_8BIT:	//signed value added to PC, but i can't add the value to the pointer directly...
 		addCycleCount(GB, 2);
@@ -123,40 +123,40 @@ void* getDataFromParameter(GameBoy_Instance* GB, Opcode_Parameter param)
 	//Register from Register
 	case RELATIVE_REG_C:
 		addCycleCount(GB, 1);
-		return GB->RAM_ref + 0xFF00 + CPU_ptr->C;
+		return gameboy_getRAM(GB) + 0xFF00 + CPU_ptr->C;
 	case ADDRESS_REG_BC:
 		addCycleCount(GB, 1);
-		return GB->RAM_ref + CPU_ptr->BC;
+		return gameboy_getRAM(GB) + CPU_ptr->BC;
 	case ADDRESS_REG_DE:
 		addCycleCount(GB, 1);
-		return GB->RAM_ref + CPU_ptr->DE;
+		return gameboy_getRAM(GB) + CPU_ptr->DE;
 	case ADDRESS_REG_HL:
 		addCycleCount(GB, 1);
-		return GB->RAM_ref + CPU_ptr->HL;
+		return gameboy_getRAM(GB) + CPU_ptr->HL;
 	//Load increases
 	case ADDRESS_REG_HLI:
 		addCycleCount(GB, 1);
-		return GB->RAM_ref + CPU_ptr->HL++;
+		return gameboy_getRAM(GB) + CPU_ptr->HL++;
 	case ADDRESS_REG_HLD:
 		addCycleCount(GB, 1);
-		return GB->RAM_ref + CPU_ptr->HL--;
+		return gameboy_getRAM(GB) + CPU_ptr->HL--;
 	//Reset Vectors
 	case RESET_0:
-		return GB->RAM_ref + 0x00;
+		return gameboy_getRAM(GB) + 0x00;
 	case RESET_1:
-		return GB->RAM_ref + 0x08;
+		return gameboy_getRAM(GB) + 0x08;
 	case RESET_2:
-		return GB->RAM_ref + 0x10;
+		return gameboy_getRAM(GB) + 0x10;
 	case RESET_3:
-		return GB->RAM_ref + 0x18;
+		return gameboy_getRAM(GB) + 0x18;
 	case RESET_4:
-		return GB->RAM_ref + 0x20;
+		return gameboy_getRAM(GB) + 0x20;
 	case RESET_5:
-		return GB->RAM_ref + 0x28;
+		return gameboy_getRAM(GB) + 0x28;
 	case RESET_6:
-		return GB->RAM_ref + 0x30;
+		return gameboy_getRAM(GB) + 0x30;
 	case RESET_7:
-		return GB->RAM_ref + 0x38;
+		return gameboy_getRAM(GB) + 0x38;
 	default:
 		return NULL;
 	};
@@ -164,8 +164,9 @@ void* getDataFromParameter(GameBoy_Instance* GB, Opcode_Parameter param)
 
 void addCycleCount(GameBoy_Instance* GB, int cycles)
 {
-	GB->CycleNumber += cycles;
-	GB->SystemTimer += cycles * 4;
+	TimerData* timer = gameboy_getTimer(GB);
+	timer->CycleNumber += cycles;
+	timer->SystemTimer += cycles * 4;
 }
 
 void PUSH_Value(unsigned short value, CPU* CPU_ptr, RAM* RAM_ptr)
@@ -187,7 +188,7 @@ unsigned short POP_Value(CPU* CPU_ptr, RAM* RAM_ptr)
 //Add Value2 to Value1 (Always A) and add Carry;
 void OP_ADC(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
 	unsigned char carry = flags->Carry?1:0;	//a set carry comes out as 255 for some reason
@@ -209,11 +210,11 @@ void OP_ADC(void *value1, void *value2, GameBoy_Instance* GB)
 //Add Value2 to Value1
 void OP_ADD16(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned int result = 0;
 	unsigned short* val1 = (unsigned short*)value1;
 
-	if(value1 == &(GB->CPU_ref->SP))
+	if(value1 == &(gameboy_getCPU(GB)->SP))
 	{
 		signed char* val2 = (signed char*)value2;
 
@@ -247,7 +248,7 @@ void OP_ADD16(void *value1, void *value2, GameBoy_Instance* GB)
 //Add Value2 to Value1 (Always A)
 void OP_ADD8(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref); 
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB)); 
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
 
@@ -269,7 +270,7 @@ void OP_ADD8(void *value1, void *value2, GameBoy_Instance* GB)
 //bitwise and Value2 into Value1 (always A)
 void OP_AND(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char* reg1 = (unsigned char*)value1;
 	unsigned char* reg2 = (unsigned char*)value2;
 
@@ -289,11 +290,11 @@ void OP_AND(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_CALL(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	unsigned short callAddress = *(unsigned short*)value1;
-	unsigned short returnValue = GB->CPU_ref->PC;
+	unsigned short returnValue = gameboy_getCPU(GB)->PC;
 
-	PUSH_Value(returnValue, getCPU(GB), getRAM(GB));
+	PUSH_Value(returnValue, gameboy_getCPU(GB), gameboy_getRAM(GB));
 
-	GB->CPU_ref->PC = callAddress;
+	gameboy_getCPU(GB)->PC = callAddress;
 	
 	addCycleCount(GB, 5);
 }
@@ -301,7 +302,7 @@ void OP_CALL(void *value1, void *value2, GameBoy_Instance* GB)
 //Push return address to stack, and jump to value1 if the carry is set
 void OP_CALL_C(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(GB->CPU_ref->FLAGS.Carry)
+	if(gameboy_getCPU(GB)->FLAGS.Carry)
 	{
 		OP_CALL(value1, value2, GB);
 	}
@@ -314,7 +315,7 @@ void OP_CALL_C(void *value1, void *value2, GameBoy_Instance* GB)
 //Push return address to stack, and jump to value1 if the carry is not set
 void OP_CALL_NC(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!GB->CPU_ref->FLAGS.Carry)
+	if(!gameboy_getCPU(GB)->FLAGS.Carry)
 	{
 		OP_CALL(value1, value2, GB);
 	}
@@ -327,7 +328,7 @@ void OP_CALL_NC(void *value1, void *value2, GameBoy_Instance* GB)
 //Push return address to stack, and jump to value1 if the zero is not set
 void OP_CALL_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!GB->CPU_ref->FLAGS.Zero)
+	if(!gameboy_getCPU(GB)->FLAGS.Zero)
 	{
 		OP_CALL(value1, value2, GB);
 	}
@@ -340,7 +341,7 @@ void OP_CALL_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 //Push return address to stack, and jump to value1 if the zero is set
 void OP_CALL_Z(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(GB->CPU_ref->FLAGS.Zero)
+	if(gameboy_getCPU(GB)->FLAGS.Zero)
 	{
 		OP_CALL(value1, value2, GB);
 	}
@@ -363,7 +364,7 @@ void OP_CBpref(void *value1, void *value2, GameBoy_Instance* GB)
 //Invert the carry flag
 void OP_CCF(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	flags->Carry = !(flags->Carry);
 	flags->Subtract = 0;
 	flags->HCarry = 0;
@@ -374,7 +375,7 @@ void OP_CCF(void *value1, void *value2, GameBoy_Instance* GB)
 //Compare Value2 to Value1 (always A)
 void OP_CP(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
 
@@ -389,8 +390,8 @@ void OP_CP(void *value1, void *value2, GameBoy_Instance* GB)
 //Flip all bits in REG_A
 void OP_CPL(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
-	GB->CPU_ref->A = ~GB->CPU_ref->A;
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
+	gameboy_getCPU(GB)->A = ~gameboy_getCPU(GB)->A;
 
 	flags->Subtract = 1;
 	flags->HCarry = 1;
@@ -399,8 +400,8 @@ void OP_CPL(void *value1, void *value2, GameBoy_Instance* GB)
 }
 void OP_DAA(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
-	unsigned char regA_value = GB->CPU_ref->A;
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
+	unsigned char regA_value = gameboy_getCPU(GB)->A;
 
 	if(flags->Subtract)	//last opperation was subctraction
 	{
@@ -431,7 +432,7 @@ void OP_DAA(void *value1, void *value2, GameBoy_Instance* GB)
 	flags->Zero = regA_value ? 0:1;
 	flags->HCarry = 0;
 
-	GB->CPU_ref->A = regA_value;
+	gameboy_getCPU(GB)->A = regA_value;
 
 	addCycleCount(GB, 1);
 }
@@ -449,7 +450,7 @@ void OP_DEC16(void *value1, void *value2, GameBoy_Instance* GB)
 //Decrement Value1
 void OP_DEC8(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char* val1 = (unsigned char*)value1;
 
 	(*val1)--;
@@ -460,7 +461,7 @@ void OP_DEC8(void *value1, void *value2, GameBoy_Instance* GB)
 	flags->HCarry = (*val1 & 0x0f) == 0xf;
 
 	//if (HL) was used then this opperation costs one extra cycle
-	if(value1 == GB->RAM_ref + GB->CPU_ref->HL)
+	if(value1 == gameboy_getRAM(GB) + gameboy_getCPU(GB)->HL)
 	{
 		addCycleCount(GB, 2);
 	}
@@ -473,7 +474,7 @@ void OP_DEC8(void *value1, void *value2, GameBoy_Instance* GB)
 //Disable interrupts
 void OP_DI(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	getInterruptRegs(GB)->Interrupt_master_enable = INTERRUPT_DISABLED;
+	gameboy_getInterruptRegs(GB)->Interrupt_master_enable = INTERRUPT_DISABLED;
 
 	addCycleCount(GB, 1);
 }
@@ -481,7 +482,7 @@ void OP_DI(void *value1, void *value2, GameBoy_Instance* GB)
 //Enable interrupts
 void OP_EI(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	getInterruptRegs(GB)->Interrupt_master_enable = INTERRUPT_REENABLE_SHEDUELED;
+	gameboy_getInterruptRegs(GB)->Interrupt_master_enable = INTERRUPT_REENABLE_SHEDUELED;
 
 	addCycleCount(GB, 1);
 }
@@ -493,7 +494,7 @@ void OP_ERROR(void *value1, void *value2, GameBoy_Instance* GB)
 //Halt the cpu untill an interrupt occurs
 void OP_HALT(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	getInterruptRegs(GB)->CPU_status = CPU_HALTED;
+	gameboy_getInterruptRegs(GB)->CPU_status = CPU_HALTED;
 
 	addCycleCount(GB, 1);
 }
@@ -511,7 +512,7 @@ void OP_INC16(void *value1, void *value2, GameBoy_Instance* GB)
 //Increment Value1
 void OP_INC8(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char* val1 = (unsigned char*)value1;
 
 	(*val1)++;
@@ -522,7 +523,7 @@ void OP_INC8(void *value1, void *value2, GameBoy_Instance* GB)
 	flags->HCarry = (*val1 & 0x0f)?0:1;
 
 	//if (HL) was used then this opperation costs one extra cycle
-	if(value1 == GB->RAM_ref + GB->CPU_ref->HL)
+	if(value1 == gameboy_getRAM(GB) + gameboy_getCPU(GB)->HL)
 	{
 		addCycleCount(GB, 2);
 	}
@@ -536,9 +537,9 @@ void OP_INC8(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_JP(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	//I have to check the two bytes are the right way around
-	GB->CPU_ref->PC = *(unsigned short*)value1;
+	gameboy_getCPU(GB)->PC = *(unsigned short*)value1;
 
-	if(value1 != &(GB->CPU_ref->HL))
+	if(value1 != &(gameboy_getCPU(GB)->HL))
 	{
 		addCycleCount(GB, 3);
 	}
@@ -547,9 +548,9 @@ void OP_JP(void *value1, void *value2, GameBoy_Instance* GB)
 //Jump to Value1 if the carry flag is set
 void OP_JP_C(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(GB->CPU_ref->FLAGS.Carry)
+	if(gameboy_getCPU(GB)->FLAGS.Carry)
 	{
-		GB->CPU_ref->PC = *(unsigned short*)value1;
+		gameboy_getCPU(GB)->PC = *(unsigned short*)value1;
 		addCycleCount(GB, 3);
 	}
 	else
@@ -561,9 +562,9 @@ void OP_JP_C(void *value1, void *value2, GameBoy_Instance* GB)
 //Jump to Value1 if the carry flag is not set
 void OP_JP_NC(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!GB->CPU_ref->FLAGS.Carry)
+	if(!gameboy_getCPU(GB)->FLAGS.Carry)
 	{
-		GB->CPU_ref->PC = *(unsigned short*)value1;
+		gameboy_getCPU(GB)->PC = *(unsigned short*)value1;
 		addCycleCount(GB, 3);
 	}
 	else
@@ -575,9 +576,9 @@ void OP_JP_NC(void *value1, void *value2, GameBoy_Instance* GB)
 //Jump to Value1 if the zero flag is not set
 void OP_JP_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!GB->CPU_ref->FLAGS.Zero)
+	if(!gameboy_getCPU(GB)->FLAGS.Zero)
 	{
-		GB->CPU_ref->PC = *(unsigned short*)value1;
+		gameboy_getCPU(GB)->PC = *(unsigned short*)value1;
 		addCycleCount(GB, 3);
 	}
 	else
@@ -589,9 +590,9 @@ void OP_JP_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 //Jump to Value1 if the zero flag is set
 void OP_JP_Z(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(GB->CPU_ref->FLAGS.Zero)
+	if(gameboy_getCPU(GB)->FLAGS.Zero)
 	{
-		GB->CPU_ref->PC = *(unsigned short*)value1;
+		gameboy_getCPU(GB)->PC = *(unsigned short*)value1;
 		addCycleCount(GB, 3);
 	}
 	else
@@ -603,16 +604,16 @@ void OP_JP_Z(void *value1, void *value2, GameBoy_Instance* GB)
 //Jump to PC + value1
 void OP_JR(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	GB->CPU_ref->PC = GB->CPU_ref->PC + *(char*)value1;
+	gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + *(char*)value1;
 	addCycleCount(GB, 3);
 }
 
 //Jump to PC + value1 if the Carry is set
 void OP_JR_C(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(GB->CPU_ref->FLAGS.Carry)
+	if(gameboy_getCPU(GB)->FLAGS.Carry)
 	{
-		GB->CPU_ref->PC = GB->CPU_ref->PC + *(char*)value1;
+		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + *(char*)value1;
 		addCycleCount(GB, 3);
 	}
 	else
@@ -624,9 +625,9 @@ void OP_JR_C(void *value1, void *value2, GameBoy_Instance* GB)
 //Jump to PC + value1 if the Carry is not set
 void OP_JR_NC(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!GB->CPU_ref->FLAGS.Carry)
+	if(!gameboy_getCPU(GB)->FLAGS.Carry)
 	{
-		GB->CPU_ref->PC = GB->CPU_ref->PC + *(char*)value1;
+		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + *(char*)value1;
 		addCycleCount(GB, 3);
 	}
 	else
@@ -638,9 +639,9 @@ void OP_JR_NC(void *value1, void *value2, GameBoy_Instance* GB)
 //Jump to PC + value1 if the Zero is not set
 void OP_JR_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!GB->CPU_ref->FLAGS.Zero)
+	if(!gameboy_getCPU(GB)->FLAGS.Zero)
 	{
-		GB->CPU_ref->PC = GB->CPU_ref->PC + *(char*)value1;
+		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + *(char*)value1;
 		addCycleCount(GB, 3);
 	}
 	else
@@ -652,9 +653,9 @@ void OP_JR_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 //Jump to PC + value1 if the Zero is set
 void OP_JR_Z(void *value1, void *value2, GameBoy_Instance* GB)
 {	
-	if(GB->CPU_ref->FLAGS.Zero)
+	if(gameboy_getCPU(GB)->FLAGS.Zero)
 	{
-		GB->CPU_ref->PC = GB->CPU_ref->PC + *(char*)value1;
+		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + *(char*)value1;
 		addCycleCount(GB, 3);
 	}
 	else
@@ -687,7 +688,7 @@ void OP_LD8(void *value1, void *value2, GameBoy_Instance* GB)
 //Load SP + r8 into HL
 void OP_LDHL(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned short* HL = (unsigned short*)value1;
 	unsigned short* SP = (unsigned short*)value2;
 
@@ -716,7 +717,7 @@ void OP_NOP(void *value1, void *value2, GameBoy_Instance* GB)
 //Bitwise OR value2 into value1 (always A)
 void OP_OR(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char* reg1 = (unsigned char*)value1;
 	unsigned char* reg2 = (unsigned char*)value2;
 
@@ -737,13 +738,13 @@ void OP_POP(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	unsigned short* Register = (unsigned short*)value1;
 
-	*Register = POP_Value(getCPU(GB), getRAM(GB));
+	*Register = POP_Value(gameboy_getCPU(GB), gameboy_getRAM(GB));
 
 	//there is a chance the empty bit fields of the flag register
 	//get filled when popping a value into AF
-	if(Register == &(GB->CPU_ref->AF))
+	if(Register == &(gameboy_getCPU(GB)->AF))
 	{
-		GB->CPU_ref->FLAGS.null = 0;
+		gameboy_getCPU(GB)->FLAGS.null = 0;
 	}
 
 	addCycleCount(GB, 3);
@@ -754,7 +755,7 @@ void OP_PUSH(void *value1, void *value2, GameBoy_Instance* GB)
 { 
 	unsigned short* Register = (unsigned short*)value1;
 
-	PUSH_Value(*Register, getCPU(GB), getRAM(GB));
+	PUSH_Value(*Register, gameboy_getCPU(GB), gameboy_getRAM(GB));
 
 	addCycleCount(GB, 4);
 }
@@ -762,7 +763,7 @@ void OP_PUSH(void *value1, void *value2, GameBoy_Instance* GB)
 //pop the return value from the stack and return to said value
 void OP_RET(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	GB->CPU_ref->PC = POP_Value(getCPU(GB), getRAM(GB));
+	gameboy_getCPU(GB)->PC = POP_Value(gameboy_getCPU(GB), gameboy_getRAM(GB));
 	addCycleCount(GB, 2);
 }
 
@@ -770,13 +771,13 @@ void OP_RET(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_RETI(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	OP_RET(value1, value2, GB);
-	getInterruptRegs(GB)->Interrupt_master_enable = INTERRUPT_ENABLED;
+	gameboy_getInterruptRegs(GB)->Interrupt_master_enable = INTERRUPT_ENABLED;
 }
 
 //return of the carry flag is set
 void OP_RET_C(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(GB->CPU_ref->FLAGS.Carry)
+	if(gameboy_getCPU(GB)->FLAGS.Carry)
 	{
 		OP_RET(value1, value2, GB);
 	}
@@ -785,7 +786,7 @@ void OP_RET_C(void *value1, void *value2, GameBoy_Instance* GB)
 //return of the carry flag is not set
 void OP_RET_NC(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(!GB->CPU_ref->FLAGS.Carry)
+	if(!gameboy_getCPU(GB)->FLAGS.Carry)
 	{
 		OP_RET(value1, value2, GB);
 	}
@@ -793,7 +794,7 @@ void OP_RET_NC(void *value1, void *value2, GameBoy_Instance* GB)
 
 //return of the zero flag is not set
 void OP_RET_NZ(void *value1, void *value2, GameBoy_Instance* GB)
-{	if(!GB->CPU_ref->FLAGS.Zero)
+{	if(!gameboy_getCPU(GB)->FLAGS.Zero)
 	{
 		OP_RET(value1, value2, GB);
 	}
@@ -802,7 +803,7 @@ void OP_RET_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 //return of the zero flag is set
 void OP_RET_Z(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	if(GB->CPU_ref->FLAGS.Zero)
+	if(gameboy_getCPU(GB)->FLAGS.Zero)
 	{
 		OP_RET(value1, value2, GB);
 	}
@@ -811,7 +812,7 @@ void OP_RET_Z(void *value1, void *value2, GameBoy_Instance* GB)
 //Rotate A left through carry
 void OP_RLA(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU* CPU_ptr = getCPU(GB);
+	CPU* CPU_ptr = gameboy_getCPU(GB);
 	CPU_flags* flags = getFlags(CPU_ptr);
 	unsigned char outbit = CPU_ptr->A & 0x80;
 	unsigned char shifted = CPU_ptr->A << 1;
@@ -834,7 +835,7 @@ void OP_RLA(void *value1, void *value2, GameBoy_Instance* GB)
 //Rotate A left into carry
 void OP_RLCA(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU* CPU_ptr = getCPU(GB);
+	CPU* CPU_ptr = gameboy_getCPU(GB);
 	CPU_flags* flags = getFlags(CPU_ptr);
 	unsigned char outbit = CPU_ptr->A & 0x80;
 	unsigned char shifted = CPU_ptr->A << 1;
@@ -857,7 +858,7 @@ void OP_RLCA(void *value1, void *value2, GameBoy_Instance* GB)
 //Rotate A left through carry
 void OP_RRA(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU* CPU_ptr = getCPU(GB);
+	CPU* CPU_ptr = gameboy_getCPU(GB);
 	CPU_flags* flags = getFlags(CPU_ptr);
 	unsigned char outbit = CPU_ptr->A & 0x01;
 	unsigned char shifted = CPU_ptr->A >> 1;
@@ -880,7 +881,7 @@ void OP_RRA(void *value1, void *value2, GameBoy_Instance* GB)
 //Rotate A right into carry
 void OP_RRCA(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU* CPU_ptr = getCPU(GB);
+	CPU* CPU_ptr = gameboy_getCPU(GB);
 	CPU_flags* flags = getFlags(CPU_ptr);
 	unsigned char outbit = CPU_ptr->A & 0x01;
 	unsigned char shifted = CPU_ptr->A >> 1;
@@ -902,17 +903,17 @@ void OP_RRCA(void *value1, void *value2, GameBoy_Instance* GB)
 }
 void OP_RST(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	unsigned short resetVector = (unsigned char*)value1 - GB->RAM_ref;
+	unsigned short resetVector = (unsigned char*)value1 - gameboy_getRAM(GB);
 
-	PUSH_Value(GB->CPU_ref->PC, getCPU(GB), getRAM(GB));
+	PUSH_Value(gameboy_getCPU(GB)->PC, gameboy_getCPU(GB), gameboy_getRAM(GB));
 
-	GB->CPU_ref->PC = resetVector;
+	gameboy_getCPU(GB)->PC = resetVector;
 }
 
 //Subctract with carry
 void OP_SBC(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
 	unsigned char carry = flags->Carry?1:0;
@@ -936,7 +937,7 @@ void OP_SBC(void *value1, void *value2, GameBoy_Instance* GB)
 //Set the carry flag
 void OP_SCF(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	flags->Subtract = 0;
 	flags->HCarry = 0;
 	flags->Carry = 1;
@@ -947,10 +948,10 @@ void OP_SCF(void *value1, void *value2, GameBoy_Instance* GB)
 //halt the cpu and lcd untill a button is pressed
 void OP_STOP(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	getInterruptRegs(GB)->CPU_status = CPU_STOPPED;
+	gameboy_getInterruptRegs(GB)->CPU_status = CPU_STOPPED;
 
 	//the stop opcode is actualy two bytes long (followed by a 00 (OP_NOP))
-	GB->CPU_ref->PC++;
+	gameboy_getCPU(GB)->PC++;
 
 	addCycleCount(GB, 1);
 }
@@ -958,7 +959,7 @@ void OP_STOP(void *value1, void *value2, GameBoy_Instance* GB)
 //Subtract value2 from value1 (Always A)
 void OP_SUB(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char* val1 = (unsigned char*)value1;
 	unsigned char* val2 = (unsigned char*)value2;
 
@@ -980,7 +981,7 @@ void OP_SUB(void *value1, void *value2, GameBoy_Instance* GB)
 //Bitwise XOR value2 into value1 (always A)
 void OP_XOR(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char* reg1 = (unsigned char*)value1;
 	unsigned char* reg2 = (unsigned char*)value2;
 
@@ -1000,7 +1001,7 @@ void OP_XOR(void *value1, void *value2, GameBoy_Instance* GB)
 //Rotate reg left
 void OP_RLC(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char outbit = *reg & 0x80;
 	unsigned char shifted = *reg << 1;
 
@@ -1022,7 +1023,7 @@ void OP_RLC(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 //Rotate reg right
 void OP_RRC(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char outbit = *reg & 0x01;
 	unsigned char shifted = *reg >> 1;
 
@@ -1044,7 +1045,7 @@ void OP_RRC(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 //Rotate reg left through carry
 void OP_RL(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char outbit = *reg & 0x80;
 	unsigned char shifted = *reg << 1;
 
@@ -1066,7 +1067,7 @@ void OP_RL(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 //Rotate right through carry
 void OP_RR(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char outbit = *reg & 0x01;
 	unsigned char shifted = *reg >> 1;
 
@@ -1088,7 +1089,7 @@ void OP_RR(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 //shift reg left into carry
 void OP_SLA(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char outbit = *reg & 0x80;
 	unsigned char shifted = *reg << 1;
 
@@ -1105,7 +1106,7 @@ void OP_SLA(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 //shift reg right into carry (msb stays the same)
 void OP_SRA(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char outbit = *reg & 0x01;
 	unsigned char msb = *reg & 0x80;
 	unsigned char shifted = *reg >> 1;
@@ -1125,7 +1126,7 @@ void OP_SRA(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 //shift reg right into carry
 void OP_SRL(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char outbit = *reg & 0x01;
 	unsigned char shifted = *reg >> 1;
 
@@ -1142,7 +1143,7 @@ void OP_SRL(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 //swap the upper and lower nibbles of reg
 void OP_SWAP(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char upNibble = *reg & 0xF0;
 	unsigned char lowNibble = *reg & 0x0F;
 
@@ -1159,7 +1160,7 @@ void OP_SWAP(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 //test bit in reg
 void OP_BIT(unsigned char bit, unsigned char* reg, GameBoy_Instance* GB)
 {
-	CPU_flags* flags = getFlags(GB->CPU_ref);
+	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned char mask = 1 << bit;
 	unsigned char result = *reg & mask;
 

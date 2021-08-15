@@ -6,6 +6,31 @@
 #include <stdlib.h>
 #include <string.h>
 
+//struct
+struct GameBoy_Instance_t
+{
+	//shared thread data
+	emu_status_flags* emu_status;
+	player_input* input;
+	framebuffer* fb;
+
+	//pointers
+	CPU* CPU_ref;
+	RAM* RAM_ref;
+	Interrupt_registers* Interrupt_ref;
+	Memory_Mapper* MAPPER_ref;
+
+	//data
+	TimerData Timer;
+
+};
+
+//forward declarations
+//check if a certain value is in range of rangeStart and rangeEnd
+static unsigned char inRange(unsigned short writeLocation, unsigned short RangeStart, unsigned short RangeEnd);
+//check if a pointer value is in range of rangeStart and rangeEnd
+static unsigned char inPointerRange(void* writeLocation, void* RangeStart, void* RangeEnd);
+
 GameBoy_Instance* gameBoy_init(shared_Thread_Blocks* sharedBlocks, char* romPath)
 {
 
@@ -64,32 +89,52 @@ void gameBoy_dispose(GameBoy_Instance* GameBoy)
 	}
 }
 
-CPU* getCPU(GameBoy_Instance* GB)
+emu_status_flags* gameBoy_getEmuStatus(GameBoy_Instance* GB)
+{
+	return GB->emu_status;
+}
+
+player_input* gameBoy_getInput(GameBoy_Instance* GB)
+{
+	return GB->input;
+}
+
+framebuffer* gameBoy_getFramebuffer(GameBoy_Instance* GB)
+{
+	return GB->fb;
+}
+
+CPU* gameboy_getCPU(GameBoy_Instance* GB)
 {
 	return GB->CPU_ref;
 }
 
-RAM* getRAM(GameBoy_Instance* GB)
+RAM* gameboy_getRAM(GameBoy_Instance* GB)
 {
 	return GB->RAM_ref;
 }
 
-Interrupt_registers* getInterruptRegs(GameBoy_Instance* GB)
+Interrupt_registers* gameboy_getInterruptRegs(GameBoy_Instance* GB)
 {
 	return GB->Interrupt_ref;
 }
 
-Memory_Mapper* getMemMapper(GameBoy_Instance* GB)
+Memory_Mapper* gameboy_getMemMapper(GameBoy_Instance* GB)
 {
 	return GB->MAPPER_ref;
 }
 
-unsigned char inRange(unsigned short writeLocation, unsigned short RangeStart, unsigned short RangeEnd)
+TimerData* gameboy_getTimer(GameBoy_Instance* GB)
+{
+	return &(GB->Timer);
+}
+
+static unsigned char inRange(unsigned short writeLocation, unsigned short RangeStart, unsigned short RangeEnd)
 {
 	return ((writeLocation >= RangeStart) && (writeLocation <= RangeEnd));
 }
 
-unsigned char inPointerRange(void* writeLocation, void* RangeStart, void* RangeEnd)
+static unsigned char inPointerRange(void* writeLocation, void* RangeStart, void* RangeEnd)
 {
 	return ((writeLocation >= RangeStart) && (writeLocation <= RangeEnd));
 }
@@ -98,7 +143,7 @@ unsigned char inPointerRange(void* writeLocation, void* RangeStart, void* RangeE
 void writeOperation(unsigned char* value1, unsigned char* value2, GameBoy_Instance* GB)
 {
 	//check if the write is done to a special part of memory
-	RAM* ram = getRAM(GB);
+	RAM* ram = gameboy_getRAM(GB);
 	if(inPointerRange(value1, ram + RAM_START, ram + RAM_END))
 	{
 		unsigned short writeLocation = 0;
@@ -115,31 +160,40 @@ void writeOperation(unsigned char* value1, unsigned char* value2, GameBoy_Instan
 		switch(writeLocation)
 		{
 			case RAM_LOCATION_IO_DIV:
+			{
 				//reset the systemTimer, this resets div and affects the timer
-				GB->SystemTimer = 0;
-				GB->LastSystemTimer = 0;
-				GB->TimerStep = 0;
+				TimerData* timer = gameboy_getTimer(GB);
+				timer->SystemTimer = 0;
+				timer->LastSystemTimer = 0;
+				timer->TimerStep = 0;
 				ram[RAM_LOCATION_IO_DIV] = 0;
 				return;
+			}
 			case RAM_LOCATION_IO_TAC:
+			{
 				//If the clock select changes, the TimerStep has to be recalculated
-				GB->TimerStep = GB->TimerStep % IO_TIMER_CLOCKSELECT[*value2 & TIMER_TAC_CLOCKSELECT_BITS];
+				TimerData* timer = gameboy_getTimer(GB);
+				timer->TimerStep = timer->TimerStep % IO_TIMER_CLOCKSELECT[*value2 & TIMER_TAC_CLOCKSELECT_BITS];
 				break;
+			}
 			case RAM_LOCATION_IO_TIMA:
+			{
 				//nothing special, just for debugging
-				GB->TimerStep = GB->TimerStep;
+				TimerData* timer = gameboy_getTimer(GB);
+				timer->TimerStep = timer->TimerStep;
 				break;
+			}
 			default:
 			//check if the write is done to a special address range
 			//see if the write is being made to ROM
 			if(inRange(writeLocation, RAM_LOCATION_ROM_0_START, RAM_LOCATION_ROM_SWAPPABLE_END))
 			{
-				write_to_rom(writeLocation, *value2, getMemMapper(GB), getRAM(GB));
+				write_to_rom(writeLocation, *value2, gameboy_getMemMapper(GB), gameboy_getRAM(GB));
 				return;
 			}
 			//check if the write is to cartridge ram while its dissabled
 			else if(inRange(writeLocation, RAM_LOCATION_RAM_SWAPPABLE_START, RAM_LOCATION_RAM_SWAPPABLE_END) &&
-				!(getMemMapper(GB)->ram_enabled))
+				!(gameboy_getMemMapper(GB)->ram_enabled))
 			{
 				return;
 			}

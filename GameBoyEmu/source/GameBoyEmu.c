@@ -38,13 +38,14 @@ static int run(shared_Thread_Blocks* threadData)
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
-	while(!check_emu_status(GameBoy->emu_status))
+	while(!check_emu_status(gameBoy_getEmuStatus(GameBoy)))
 	{
-		check_key_presses(GameBoy->input);
-		check_interrupts(getInterruptRegs(GameBoy), getCPU(GameBoy), getRAM(GameBoy));
+		check_key_presses(gameBoy_getInput(GameBoy));
+		check_interrupts(gameboy_getInterruptRegs(GameBoy), gameboy_getCPU(GameBoy), gameboy_getRAM(GameBoy));
 		performNextOpcode(GameBoy);
-		perform_serialOperation(getRAM(GameBoy));
-		perform_timerOperation(getRAM(GameBoy), GameBoy->SystemTimer, &(GameBoy->LastSystemTimer), &(GameBoy->TimerStep));
+		perform_serialOperation(gameboy_getRAM(GameBoy));
+		TimerData* Timer = gameboy_getTimer(GameBoy);
+		perform_timerOperation(gameboy_getRAM(GameBoy), Timer->SystemTimer, &(Timer->LastSystemTimer), &(Timer->TimerStep));
 		fflush(stdout);
 	}
 
