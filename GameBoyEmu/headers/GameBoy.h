@@ -6,6 +6,7 @@
 #include "Interrupt.h"
 #include "RomMapper.h"
 #include "sharedData.h"
+#include "Graphics.h"
 
 //forward declrations
 typedef struct GameBoy_Instance_t GameBoy_Instance;
@@ -33,6 +34,7 @@ CPU* gameboy_getCPU(GameBoy_Instance* GB);
 RAM* gameboy_getRAM(GameBoy_Instance* GB);
 Interrupt_registers* gameboy_getInterruptRegs(GameBoy_Instance* GB);
 Memory_Mapper* gameboy_getMemMapper(GameBoy_Instance* GB);
+screenData* gameboy_getScreenData(GameBoy_Instance* GB);
 TimerData* gameboy_getTimer(GameBoy_Instance* GB);
 
 

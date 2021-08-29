@@ -12,6 +12,12 @@ shared_Thread_Blocks* sharedData = NULL;
 GtkWidget *window = NULL;
 GThread* emulatorThread = NULL;
 
+typedef struct screenAndBuffer_t
+{
+	GtkWidget* screen;
+	framebuffer* fb;
+}screenAndBuffer;
+
 //---------------------
 //-- signal handlers --
 //---------------------
@@ -55,6 +61,19 @@ void handleKeyEvent(GtkWidget *widget, GdkEventKey *event, player_input* sharedI
 
 	//release the data
 	unlock_shared_data(sharedInput);
+}
+
+static int update_screen(void* sb)
+{
+	//TODO: maybe only redraw the screen if the screen id gets flipped
+	screenAndBuffer* screenAndBuff = (screenAndBuffer*)sb;
+	framebuffer_data* fb_data = get_framebuffer_data(screenAndBuff->fb);
+
+	gtk_image_set_from_pixbuf(GTK_IMAGE(screenAndBuff->screen), fb_data->framebuff);
+
+	unlock_shared_data(screenAndBuff->fb);
+
+	return 1;
 }
 
 //handle exit signal
@@ -121,6 +140,13 @@ void setupSignals(GtkWidget* window, shared_Thread_Blocks* sharedDataBlocks)
 	//connect signal for player input
 	g_signal_connect(G_OBJECT(window), "key-press-event", G_CALLBACK(handleKeyEvent), input);
 	g_signal_connect(G_OBJECT(window), "key-release-event", G_CALLBACK(handleKeyEvent), input);
+
+	screenAndBuffer* packedData = malloc(sizeof(packedData));
+	GList* window_children = gtk_container_get_children(GTK_CONTAINER(window));
+	GList* vbox_children = gtk_container_get_children(GTK_CONTAINER(window_children->data));
+	packedData->screen = vbox_children->data;
+	packedData->fb = fb;
+	g_timeout_add(100, update_screen, packedData);
 
 }
 
