@@ -72,19 +72,20 @@ struct screenData_t
 
 //local functions
 //get palet from a pixel in a tile
-static unsigned char getPalete(tile *tile, unsigned char pixelX, unsigned char pixelY)
+static unsigned char getPalette(tile *tile, unsigned char pixelX, unsigned char pixelY)
 {
-	unsigned char palete = 0;
+	unsigned char palette = 0;
 	tileLine* line = &tile->line[pixelY];
-	palete = (line->lsByte >> (7 - pixelX)) & 1;
-	palete |= ((line->msByte >> (7 - pixelX)) & 1) << 1;
-	return palete;
+	palette = (line->lsByte >> (7 - pixelX)) & 1;
+	palette |= ((line->msByte >> (7 - pixelX)) & 1) << 1;
+	return palette;
 }
 
-static void putPixel(GdkPixbuf* buffer, unsigned char x, unsigned char y, unsigned char color, unsigned char pallet)
+//put a pixel on the screen
+static void putPixel(GdkPixbuf* buffer, unsigned char x, unsigned char y, unsigned char color, unsigned char palette)
 {
 	//calculate the color, just dmg 
-	//i'm currently not using pallet
+	//i'm currently not using palette
 	unsigned char rgbColor = 0x55 * color;
 	//invert the grayscale value
 	rgbColor = ~rgbColor;
@@ -155,8 +156,8 @@ void perform_LCD_operation(screenData* screenData, RAM* RAM_ptr, framebuffer* fb
 	{
 		for(unsigned char x = 0; x < 8; x++)
 		{
-			unsigned char pixpallete = getPalete(currentTile, x, y);
-			putPixel(screenData->pixbuf[0], x, y, pixpallete, 0);
+			unsigned char pixpalette = getPalette(currentTile, x, y);
+			putPixel(screenData->pixbuf[0], x, y, pixpalette, 0);
 		}
 	}
 	
