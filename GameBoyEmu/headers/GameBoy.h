@@ -15,6 +15,7 @@ typedef struct GameBoy_Instance_t GameBoy_Instance;
 typedef struct TimerData_t
 {
 	unsigned long CycleNumber;  //number of cpu cycles
+	unsigned char CycleDelta;   //number of cycles spent for each opcode
 	unsigned short SystemTimer; //number of clock cycles, rolls over and gets reset by writing to DIV
 	unsigned short LastSystemTimer;
 	unsigned short TimerStep;   //counter that counts when the next increase

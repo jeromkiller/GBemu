@@ -36,7 +36,9 @@ unsigned short* Read_PC16(GameBoy_Instance* GB)
 
 void performNextOpcode(GameBoy_Instance* GB)
 {
-	//perform the next opcode if the pcu is running
+	gameboy_getTimer(GB)->CycleDelta = 0;
+
+	//perform the next opcode if the cpu is running
 	if(gameboy_getInterruptRegs(GB)->CPU_status == CPU_RUNNING)
 	{
 		unsigned char opcode = *Read_PC8(GB);
@@ -166,6 +168,7 @@ void addCycleCount(GameBoy_Instance* GB, int cycles)
 {
 	TimerData* timer = gameboy_getTimer(GB);
 	timer->CycleNumber += cycles;
+	timer->CycleDelta += cycles * 4;
 	timer->SystemTimer += cycles * 4;
 }
 
