@@ -402,7 +402,7 @@ void write_to_rom(unsigned short writeLocation, unsigned char value, Memory_Mapp
 	switch(mapper->memory_controller)
 	{
 		case Rom_Only:
-			printf("Warning: memory controller is in rom only mode, writes to rom location %hu is ignored\n", writeLocation);
+			//printf("Warning: memory controller is in rom only mode, writes to rom location %hu is ignored\n", writeLocation);
 			return;
 		case MBC1:
 			write_to_MBC1(value, writeLocation, mapper, RAM_ptr);

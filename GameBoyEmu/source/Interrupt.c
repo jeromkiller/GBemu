@@ -64,8 +64,8 @@ void check_interrupts(Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM
 	}
 
 	//check if any of the intterupt flags are set
-	interruptFlags_Data flags;
-	interruptFlags_Data enableFlags;
+	interruptFlags flags;
+	interruptFlags enableFlags;
 	flags.value = *(RAM_ptr + RAM_LOCATION_IO_IF);
 	enableFlags.value = *(RAM_ptr + RAM_LOCATION_INTERRUPT_ENABLE);
 
@@ -74,7 +74,7 @@ void check_interrupts(Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM
 	
 	//set the cpu back to running if it was halted or stopped
 	if((flags.value && interrupt_ptr->CPU_status == CPU_HALTED) ||  //if in interrupt happened while the cpu is halted
-		(flags.interruptFlags.playerInput && interrupt_ptr->CPU_status == CPU_STOPPED)) //or if a button was pressen while the cpu was stopped
+		(flags.playerInput && interrupt_ptr->CPU_status == CPU_STOPPED)) //or if a button was pressen while the cpu was stopped
 	{
 		interrupt_ptr->CPU_status = CPU_RUNNING;
 		return;
@@ -86,30 +86,30 @@ void check_interrupts(Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM
 	}
 	
 
-	if(flags.interruptFlags.VBlank)
+	if(flags.VBlank)
 	{
-		flags.interruptFlags.VBlank = 0;
+		flags.VBlank = 0;
 		perform_interrupt(INTERRUPT_JUMP_VBLANK, interrupt_ptr, CPU_ptr, RAM_ptr);
 	}
-	else if(flags.interruptFlags.LCDC)
+	else if(flags.LCDC)
 	{
-		flags.interruptFlags.LCDC = 0;
+		flags.LCDC = 0;
 		perform_interrupt(INTERRUPT_JUMP_LCDCSTATUS, interrupt_ptr, CPU_ptr, RAM_ptr);
 	}
-	else if(flags.interruptFlags.timerOverflow)
+	else if(flags.timerOverflow)
 	{
-		flags.interruptFlags.timerOverflow = 0;
+		flags.timerOverflow = 0;
 		perform_interrupt(INTERRUPT_JUMP_TIMER, interrupt_ptr, CPU_ptr, RAM_ptr);
 	}
-	else if(flags.interruptFlags.serialComplete)
+	else if(flags.serialComplete)
 	{
-		flags.interruptFlags.serialComplete = 0;
+		flags.serialComplete = 0;
 		perform_interrupt(INTERRUPT_JUMP_SERIAL, interrupt_ptr, CPU_ptr, RAM_ptr);
 	}
-	else if(flags.interruptFlags.playerInput)
+	else if(flags.playerInput)
 	{
-		flags.interruptFlags.playerInput = 0;
-		perform_interrupt(INTERRUPT_JUMP_SERIAL, interrupt_ptr, CPU_ptr, RAM_ptr);
+		flags.playerInput = 0;
+		perform_interrupt(INTERRUPT_JUMP_BUTTONS, interrupt_ptr, CPU_ptr, RAM_ptr);
 	}
 
 	

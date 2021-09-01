@@ -27,7 +27,7 @@ int startGameboy(shared_Thread_Blocks* threadData_ptr)
 static int run(shared_Thread_Blocks* threadData)
 {
 	//get the in and output pipes
-	static char ROM_Path[] = {"./.roms/testRoms/cpu_instrs/cpu_instrs.gb\0"};
+	static char ROM_Path[] = {"./.roms/bgbtest.gb\0"};
 	//startup
 	GameBoy_Instance* GameBoy = gameBoy_init(threadData, ROM_Path);
 	if(NULL == GameBoy)

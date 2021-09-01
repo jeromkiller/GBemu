@@ -175,7 +175,7 @@ void writeOperation(unsigned char* value1, unsigned char* value2, GameBoy_Instan
 				timer->SystemTimer = 0;
 				timer->LastSystemTimer = 0;
 				timer->TimerStep = 0;
-				ram[RAM_LOCATION_IO_DIV] = 0;
+				*(ram + RAM_LOCATION_IO_DIV) = 0;
 				return;
 			}
 			case RAM_LOCATION_IO_TAC:

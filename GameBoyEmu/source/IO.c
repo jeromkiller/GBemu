@@ -33,10 +33,8 @@ void perform_serialOperation(RAM* RAM_ptr)
 
 	//set interrupt flag
 	//TODO: maybe set the timing
-	interruptFlags_Data flags;
-	flags.value = *(RAM_ptr + RAM_LOCATION_IO_IF);
-	flags.interruptFlags.serialComplete = 1;
-	*(RAM_ptr + RAM_LOCATION_IO_IF) = flags.value;
+	interruptFlags* flags= (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
+	flags->serialComplete = 1;
 }
 
 void perform_timerOperation(RAM* RAM_ptr, unsigned short SystemCounter, unsigned short* LastSystemCounter_ptr, unsigned short* TimerStep_ptr)
@@ -72,10 +70,8 @@ void perform_timerOperation(RAM* RAM_ptr, unsigned short SystemCounter, unsigned
 		if(newTIMA & 0xFF00)
 		{
 			//set the interrupt flag
-			interruptFlags_Data flags;
-			flags.value = *(RAM_ptr + RAM_LOCATION_IO_IF);
-			flags.interruptFlags.timerOverflow = 1;
-			*(RAM_ptr + RAM_LOCATION_IO_IF) = flags.value;
+			interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
+			flags->timerOverflow = 1;
 
 			//reset TIMA with the value of TIM
 			newTIMA = (newTIMA & 0xFF) + *(RAM_ptr + RAM_LOCATION_IO_TMA);

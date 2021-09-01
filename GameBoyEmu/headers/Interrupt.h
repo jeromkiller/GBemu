@@ -26,10 +26,10 @@ typedef struct Interrupt_registers_struct
 	Interrupt_status Interrupt_master_enable;
 }Interrupt_registers;
 
-typedef union interruptFlags_union
+typedef union interruptFlags
 {
 	unsigned char value;
-	struct bitfields
+	struct
 	{
 		unsigned char VBlank: 1;
 		unsigned char LCDC: 1;
@@ -37,8 +37,8 @@ typedef union interruptFlags_union
 		unsigned char serialComplete: 1;
 		unsigned char playerInput: 1;
 		unsigned char null: 3;
-	}interruptFlags;
-}interruptFlags_Data;
+	};
+}interruptFlags;
 
 //Functions
 //build the interrupt registers
