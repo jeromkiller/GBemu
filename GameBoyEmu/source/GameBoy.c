@@ -23,7 +23,7 @@ struct GameBoy_Instance_t
 
 	//data
 	TimerData Timer;
-
+	player_input_data oldInput;
 };
 
 //forward declarations
@@ -138,6 +138,11 @@ TimerData* gameboy_getTimer(GameBoy_Instance* GB)
 	return &(GB->Timer);
 }
 
+player_input_data* gameboy_getOldInputData(GameBoy_Instance* GB)
+{
+	return &(GB->oldInput);
+}
+
 static unsigned char inRange(unsigned short writeLocation, unsigned short RangeStart, unsigned short RangeEnd)
 {
 	return ((writeLocation >= RangeStart) && (writeLocation <= RangeEnd));
@@ -168,6 +173,11 @@ void writeOperation(unsigned char* value1, unsigned char* value2, GameBoy_Instan
 		//check if the write is to a special address
 		switch(writeLocation)
 		{
+			case RAM_LOCATION_IO_JOYPAD:
+			{
+				write_to_input(gameboy_getRAM(GB), gameboy_getOldInputData(GB), *value2);
+				return;
+			}
 			case RAM_LOCATION_IO_DIV:
 			{
 				//reset the systemTimer, this resets div and affects the timer

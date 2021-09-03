@@ -116,3 +116,59 @@ void print_serialInfo(RAM* RAM_ptr)
 		}
 	}
 }
+
+static void set_input_bits(RAM* RAM_ptr, player_input_data* input)
+{
+	//check which lines are high
+	unsigned char* joypadReg = RAM_ptr + RAM_LOCATION_IO_JOYPAD;
+	unsigned char useDirections = (*joypadReg) & 0x10;
+	unsigned char useButtons = (*joypadReg) & 0x20;
+
+	unsigned char inputBits = 0x0f;
+
+	if(!useButtons)
+	{
+		inputBits &= input->rawData;
+	}
+	if(!useDirections)
+	{
+		unsigned char test = (input->rawData >> 4);
+		inputBits &= test;
+	}
+
+	*joypadReg = (*joypadReg & 0xf0) | inputBits;
+}
+
+//save a copy of the player input data
+void handle_newinput(RAM* RAM_ptr, player_input_data* old_data, player_input* new_input)
+{
+	//get the new input data
+	player_input_data new_data = *get_player_input_data(new_input);
+	unlock_shared_data(new_input);
+
+	//set the input
+	set_input_bits(RAM_ptr, &new_data);
+
+	//check if any inputs were turned on from the off state
+	unsigned char buttons_changed = (~old_data->rawData) & new_data.rawData;
+	
+	//if so fire off an interrupt
+	if(buttons_changed)
+	{
+		interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
+		//flags->playerInput = 1; //TODO: turn back on again
+	};
+
+	*old_data = new_data;
+}
+
+//update input
+void write_to_input(RAM* RAM_ptr, player_input_data* input, unsigned char value)
+{
+	//clean the set bytes
+	unsigned char oldVal = 0b11001111 & *(RAM_ptr + RAM_LOCATION_IO_JOYPAD);
+	unsigned char newBits = 0b00110000 & value;
+	*(RAM_ptr + RAM_LOCATION_IO_JOYPAD) = oldVal | newBits;
+
+	set_input_bits(RAM_ptr, input);
+}

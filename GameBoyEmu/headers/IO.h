@@ -2,6 +2,7 @@
 
 //includes
 #include "RAM.h"
+#include "sharedData.h"
 
 //defines
 //Macro's for ram locations
@@ -23,3 +24,9 @@ void perform_serialOperation(RAM* RAM_ptr);
 
 //update the timers
 void perform_timerOperation(RAM* RAM_ptr, unsigned short SystemCounter, unsigned short* LastSystemCounter_ptr, unsigned short* TimerStep_ptr);
+
+//save a copy of the player input data
+void handle_newinput(RAM* RAM_ptr, player_input_data* old_data, player_input* new_input);
+
+//update input
+void write_to_input(RAM* RAM_ptr, player_input_data* input, unsigned char value);

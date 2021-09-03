@@ -37,6 +37,6 @@ Interrupt_registers* gameboy_getInterruptRegs(GameBoy_Instance* GB);
 Memory_Mapper* gameboy_getMemMapper(GameBoy_Instance* GB);
 screenData* gameboy_getScreenData(GameBoy_Instance* GB);
 TimerData* gameboy_getTimer(GameBoy_Instance* GB);
-
+player_input_data* gameboy_getOldInputData(GameBoy_Instance* GB);
 
 void writeOperation(unsigned char* value1, unsigned char* value2, GameBoy_Instance* GB);

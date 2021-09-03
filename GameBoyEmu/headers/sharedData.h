@@ -21,16 +21,20 @@ typedef struct emu_status_flags_data_t
 }emu_status_flags_data;
 
 //player input data
-typedef struct player_input_data_t
+typedef union player_input_data_t
 {
-	unsigned char input_up;
-	unsigned char input_down;
-	unsigned char input_left;
-	unsigned char input_right;
-	unsigned char input_A;
-	unsigned char input_B;
-	unsigned char input_start;
-	unsigned char input_select;
+	unsigned char rawData;
+	struct
+	{
+	unsigned char input_A :1;
+	unsigned char input_B :1;
+	unsigned char input_select :1;
+	unsigned char input_start :1;
+	unsigned char input_right :1;
+	unsigned char input_left :1;
+	unsigned char input_up :1;
+	unsigned char input_down :1;
+	};
 } player_input_data;
 
 //framebuffer data

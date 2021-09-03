@@ -28,7 +28,7 @@ void handleKeyEvent(GtkWidget *widget, GdkEventKey *event, player_input* sharedI
 	player_input_data* keydata = get_player_input_data(sharedInput);
 
 	//pressed or released
-	unsigned char pressed = event->type == GDK_KEY_PRESS ? 1 : 0;
+	unsigned char pressed = event->type == GDK_KEY_PRESS ? 0 : 1; //keys get pulled down when pressed
 
 	//filter the keypresses, and set the data
 	switch(event->keyval)
@@ -146,7 +146,7 @@ void setupSignals(GtkWidget* window, shared_Thread_Blocks* sharedDataBlocks)
 	GList* vbox_children = gtk_container_get_children(GTK_CONTAINER(window_children->data));
 	packedData->screen = vbox_children->data;
 	packedData->fb = fb;
-	g_timeout_add(100, update_screen, packedData);
+	g_timeout_add(10, update_screen, packedData);
 
 }
 

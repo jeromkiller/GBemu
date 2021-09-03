@@ -187,7 +187,7 @@ screenData* screenData_init()
 	data->pixbuf[1] = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, GRAPHICS_VIEWPORT_WIDTH, GRAPHICS_VIEWPORT_HEIGHT);
 
 	gdk_pixbuf_fill(data->pixbuf[0], 0xffffffff);
-	gdk_pixbuf_fill(data->pixbuf[0], 0xffffffff);
+	gdk_pixbuf_fill(data->pixbuf[1], 0xffffffff);
 
 	return data;
 }
@@ -351,12 +351,12 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 					unsigned char tileId = getTileId(RAM_ptr + bgTileMapLocation, screenX + viewportX, screenY + viewportY);
 					if(!bgTileMapAdressingMode)
 					{
-						tileId += 127;
+						tileId += 128;
 					}
 					tile* currentTile = getTileFromId(RAM_ptr + bgTileDataLocation, tileId);
 					unsigned char pixPalette = getPalette(currentTile, (screenX + viewportX) % 8, (screenY + viewportY) % 8);
 					rgbColor pixColor = getBackgroundColorVal(RAM_ptr, pixPalette);
-					putPixel(screen_ptr->pixbuf[0], screenX, screenY, pixColor);
+					putPixel(screen_ptr->pixbuf[screen_ptr->inactiveBuffer], screenX, screenY, pixColor);
 
 					//move to the next pixel
 					screenX++;

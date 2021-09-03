@@ -93,7 +93,7 @@ static player_input* create_shared_input()
 
 	//create the input data struct
 	player_input_data* input_data = (player_input_data*)malloc(sizeof(player_input_data));
-	memset(input_data, 0, sizeof(player_input_data));
+	memset(input_data, 0xff, sizeof(player_input_data));
 	shared_block->data_ptr.player_input = input_data;
 
 	return shared_block;

@@ -17,7 +17,6 @@
 
 static int run(shared_Thread_Blocks* threadData);
 static int check_emu_status(emu_status_flags* status);
-static void check_key_presses(player_input* input);
 
 int startGameboy(shared_Thread_Blocks* threadData_ptr)
 {
@@ -27,7 +26,7 @@ int startGameboy(shared_Thread_Blocks* threadData_ptr)
 static int run(shared_Thread_Blocks* threadData)
 {
 	//get the in and output pipes
-	static char ROM_Path[] = {"./.roms/bgbtest.gb\0"};
+	static char ROM_Path[] = {"./.roms/Mario.gb\0"};
 	//startup
 	GameBoy_Instance* GameBoy = gameBoy_init(threadData, ROM_Path);
 	if(NULL == GameBoy)
@@ -40,7 +39,7 @@ static int run(shared_Thread_Blocks* threadData)
 	//some user code for testing
 	while(!check_emu_status(gameBoy_getEmuStatus(GameBoy)))
 	{
-		check_key_presses(gameBoy_getInput(GameBoy));
+		handle_newinput(gameboy_getRAM(GameBoy), gameboy_getOldInputData(GameBoy), gameBoy_getInput(GameBoy));
 		check_interrupts(gameboy_getInterruptRegs(GameBoy), gameboy_getCPU(GameBoy), gameboy_getRAM(GameBoy));
 		performNextOpcode(GameBoy);
 		perform_serialOperation(gameboy_getRAM(GameBoy));
@@ -66,29 +65,4 @@ static int check_emu_status(emu_status_flags* status)
 	unlock_shared_data(status);
 	//check if the gameboy is running
 	return (flags_value & STATUS_FLAG_EMULATOR_STOPING);
-}
-
-static void check_key_presses(player_input* input)
-{
-	//lock the malloc and get the data
-	player_input_data* input_data = get_player_input_data(input);
-
-	if(input_data->input_up)
-	{
-		printf("UP\n");
-	}
-	if(input_data->input_down)
-	{
-		printf("DOWN\n");
-	}
-	if(input_data->input_left)
-	{
-		printf("LEFT\n");
-	}
-	if(input_data->input_right)
-	{
-		printf("RIGHT\n");
-	}
-
-	unlock_shared_data(input);
 }
