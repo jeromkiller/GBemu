@@ -8,9 +8,10 @@
 #include <errno.h>
 
 //global variables
-shared_Thread_Blocks* sharedData = NULL;
-GtkWidget *window = NULL;
-GThread* emulatorThread = NULL;
+static shared_Thread_Blocks* sharedData = NULL;
+static GtkWidget *window = NULL;
+static GThread* emulatorThread = NULL;
+static char* romfile = NULL;
 
 typedef struct screenAndBuffer_t
 {
@@ -157,7 +158,7 @@ static void activate(GtkApplication* app, gpointer user_data)
 	gtk_widget_show_all(window);
 
 	//setup blocks of shared data
-	shared_Thread_Blocks* sharedDataBlocks = create_shared_Thread_Blocks();
+	shared_Thread_Blocks* sharedDataBlocks = create_shared_Thread_Blocks(romfile);
 
 	//keep a global copy so we can use it in signal handlers
 	sharedData = sharedDataBlocks;
@@ -169,13 +170,25 @@ static void activate(GtkApplication* app, gpointer user_data)
 
 }
 
+static void handle_open(GtkApplication* app, gpointer user_data)
+{
+	//nothing
+	activate(app, NULL);
+}
+
 int main(int argc, char *argv[])
 {
 	GtkApplication *app;
 	int emu_status;
 
-	app = gtk_application_new("com.github.jeromkiller.gbEmu", G_APPLICATION_FLAGS_NONE);	
+	if(argc > 1)
+	{
+		romfile = argv[1];
+	}
+
+	app = gtk_application_new("com.github.jeromkiller.gbEmu", G_APPLICATION_HANDLES_COMMAND_LINE);	
 	g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
+	g_signal_connect(app, "command-line", G_CALLBACK(handle_open), NULL);
 	emu_status = g_application_run (G_APPLICATION (app), argc, argv);
 
 	g_object_unref(app);

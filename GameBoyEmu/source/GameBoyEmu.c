@@ -25,8 +25,12 @@ int startGameboy(shared_Thread_Blocks* threadData_ptr)
 
 static int run(shared_Thread_Blocks* threadData)
 {
-	//get the in and output pipes
-	static char ROM_Path[] = {"./.roms/Mario.gb\0"};
+	char* ROM_Path = get_romfile(threadData);
+	if(NULL == ROM_Path)
+	{
+		ROM_Path = ".roms/bgbtest.gb";
+	}
+
 	//startup
 	GameBoy_Instance* GameBoy = gameBoy_init(threadData, ROM_Path);
 	if(NULL == GameBoy)

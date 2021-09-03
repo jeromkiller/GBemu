@@ -46,7 +46,7 @@ typedef struct framebuffer_data_t
 
 //create a new shared thread data structure, contains all the data needed for a thread
 //caller of this function is the first owner of the data
-shared_Thread_Blocks* create_shared_Thread_Blocks(void);
+shared_Thread_Blocks* create_shared_Thread_Blocks(char* romfile);
 //free a shared thread data structure, caller of this function releases the data inside
 //NOTE: the thread_data blocks are not freed if there are still owners of the data
 void destroy_shared_Thread_Blocks(shared_Thread_Blocks* shared_data);
@@ -60,6 +60,7 @@ void free_shared_data(thread_Data_Header* data);
 emu_status_flags* get_shared_status_flags(shared_Thread_Blocks* dataBlocks);
 player_input* get_shared_player_input(shared_Thread_Blocks* dataBlocks);
 framebuffer* get_shared_framebuffer(shared_Thread_Blocks* dataBlocks);
+char* get_romfile(shared_Thread_Blocks* dataBlocks);
 
 //functions for getting the data in the datablock
 //lock the emu_status flags data and return a pointer to it

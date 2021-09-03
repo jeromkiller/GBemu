@@ -40,6 +40,8 @@ struct shared_Thread_Blocks_t
 	emu_status_flags* emu_status;
 	player_input* input;
 	framebuffer* fb;
+
+	char* romfile;
 };
 
 //private function definitions
@@ -172,7 +174,7 @@ void claim_thread_data(thread_Data_Header* data)
 	}
 }
 
-shared_Thread_Blocks* create_shared_Thread_Blocks(void)
+shared_Thread_Blocks* create_shared_Thread_Blocks(char* romfile)
 {
 	//create the shared data blocks
 	shared_Thread_Blocks* shared_blocks = (shared_Thread_Blocks*)malloc(sizeof(shared_Thread_Blocks));
@@ -180,6 +182,7 @@ shared_Thread_Blocks* create_shared_Thread_Blocks(void)
 	shared_blocks->emu_status = create_shared_status_flags();
 	shared_blocks->input = create_shared_input();
 	shared_blocks->fb = create_shared_framebuffer();
+	shared_blocks->romfile = romfile;
 	return shared_blocks;
 }
 void destroy_shared_Thread_Blocks(shared_Thread_Blocks* shared_data)
@@ -223,6 +226,11 @@ framebuffer* get_shared_framebuffer(shared_Thread_Blocks* dataBlocks)
 		return NULL;
 	}
 	return dataBlocks->fb;
+}
+
+char* get_romfile(shared_Thread_Blocks* dataBlocks)
+{
+	return dataBlocks->romfile;
 }
 
 emu_status_flags_data* get_status_flags_data(thread_Data_Header* data)
