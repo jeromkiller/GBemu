@@ -28,14 +28,14 @@ CPU* CPU_init(void)//, Interrupt_registers* Interrupt_ptr)
 }
 
 //free the cpu registers
-void CPU_dispose(CPU* CPU_ptr) 
+CPU* CPU_dispose(CPU* CPU_ptr) 
 {
 	//check if the CPU_ptr exists, and free it
 	if (NULL != CPU_ptr) 
 	{
 		free(CPU_ptr);
-		CPU_ptr = NULL;
 	}
+	return NULL;
 }
 
 CPU_flags* getFlags(CPU* CPU_ptr)

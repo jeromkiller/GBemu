@@ -12,6 +12,7 @@ static shared_Thread_Blocks* sharedData = NULL;
 static GtkWidget *window = NULL;
 static GThread* emulatorThread = NULL;
 static char* romfile = NULL;
+static char emu_status = 0;
 
 typedef struct screenAndBuffer_t
 {
@@ -66,13 +67,20 @@ void handleKeyEvent(GtkWidget *widget, GdkEventKey *event, player_input* sharedI
 
 static int update_screen(void* sb)
 {
-	//TODO: maybe only redraw the screen if the screen id gets flipped
-	screenAndBuffer* screenAndBuff = (screenAndBuffer*)sb;
-	framebuffer_data* fb_data = get_framebuffer_data(screenAndBuff->fb);
-
-	gtk_image_set_from_pixbuf(GTK_IMAGE(screenAndBuff->screen), fb_data->framebuff);
-
-	unlock_shared_data(screenAndBuff->fb);
+	if(emu_status != 0)
+	{
+		static unsigned char activeWindow;
+		screenAndBuffer* screenAndBuff = (screenAndBuffer*)sb;
+		framebuffer_data* fb_data = get_framebuffer_data(screenAndBuff->fb);
+	
+		if(activeWindow != fb_data->buffer_id)
+		{
+			gtk_image_set_from_pixbuf(GTK_IMAGE(screenAndBuff->screen), fb_data->framebuff);
+			activeWindow = fb_data->buffer_id;
+		}
+	
+		unlock_shared_data(screenAndBuff->fb);
+	}
 
 	return 1;
 }
@@ -88,14 +96,14 @@ void handleExit(GtkWidget *widget, GdkEvent *event, emu_status_flags* sharedFlag
 	status_flags->flags |= STATUS_FLAG_EMULATOR_STOPING;
 	unlock_shared_data(get_shared_status_flags(sharedData));
 
+	//clean up
+	destroy_shared_Thread_Blocks(sharedData);
+	sharedData = NULL;
+
 	//wait for the emulator to finish
 	g_thread_join(emulatorThread);
 	g_thread_unref(emulatorThread);
 	emulatorThread = NULL;
-
-	//clean up
-	destroy_shared_Thread_Blocks(sharedData);
-	sharedData = NULL;
 }
 
 //build the GUI

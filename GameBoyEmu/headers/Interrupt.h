@@ -45,7 +45,7 @@ typedef union interruptFlags
 Interrupt_registers* interruptRegisters_init();
 
 //free the struct for the interrupt registers
-void interruptRegisters_dispose(Interrupt_registers* interrupt_data);
+Interrupt_registers* interruptRegisters_dispose(Interrupt_registers* interrupt_data);
 
 //main function for handeling interrupts
 void check_interrupts(Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM_ptr);

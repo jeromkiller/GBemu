@@ -50,12 +50,12 @@ RAM* RAM_init(void)
 }
 
 //free the allocated memory stack
-void RAM_dispose(RAM* RAM_ptr) 
+RAM* RAM_dispose(RAM* RAM_ptr) 
 {
 	//check if the RAM_ptr exists, and free it
 	if (NULL != RAM_ptr)
 	{
 		free(RAM_ptr);
-		RAM_ptr = NULL;
 	}
+	return NULL;
 }

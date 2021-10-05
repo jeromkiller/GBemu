@@ -25,7 +25,7 @@ typedef struct TimerData_t
 //build the gameboy structure, and all associated data structures
 GameBoy_Instance* gameBoy_init(shared_Thread_Blocks* sharedBlocks, char* romPath);
 
-void gameBoy_dispose(GameBoy_Instance* GB);
+GameBoy_Instance* gameBoy_dispose(GameBoy_Instance* GB);
 
 //some getters for easy access
 emu_status_flags* gameBoy_getEmuStatus(GameBoy_Instance* GB);

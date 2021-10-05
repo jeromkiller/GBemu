@@ -66,7 +66,7 @@ typedef struct CPU_struct
 CPU* CPU_init();
 
 //free CPU
-void CPU_dispose(CPU* CPU_ptr);
+CPU* CPU_dispose(CPU* CPU_ptr);
 
 //some getters for easy access
 CPU_flags* getFlags(CPU* CPU_ptr);

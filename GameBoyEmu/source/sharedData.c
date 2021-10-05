@@ -37,6 +37,7 @@ struct thread_Data_Header_t
 struct shared_Thread_Blocks_t
 {
 	//shared data
+	GMutex blocks_mutex;
 	emu_status_flags* emu_status;
 	player_input* input;
 	framebuffer* fb;
@@ -119,11 +120,11 @@ static framebuffer* create_shared_framebuffer()
 }
 
 //free player input data
-void free_shared_data(thread_Data_Header* data)
+thread_Data_Header* free_shared_data(thread_Data_Header* data)
 {
 	if(NULL == data)
 	{
-		return;
+		return NULL;
 	}
 	
 	if(data->owner_count <= 0)
@@ -144,6 +145,7 @@ void free_shared_data(thread_Data_Header* data)
 		free(data);
 		data = NULL;
 	}
+	return data;
 }
 
 //lock the data and return a pointer to the data
@@ -179,24 +181,39 @@ shared_Thread_Blocks* create_shared_Thread_Blocks(char* romfile)
 	//create the shared data blocks
 	shared_Thread_Blocks* shared_blocks = (shared_Thread_Blocks*)malloc(sizeof(shared_Thread_Blocks));
 	memset(shared_blocks, 0, sizeof(shared_Thread_Blocks));
+	g_mutex_init(&shared_blocks->blocks_mutex);
 	shared_blocks->emu_status = create_shared_status_flags();
 	shared_blocks->input = create_shared_input();
 	shared_blocks->fb = create_shared_framebuffer();
 	shared_blocks->romfile = romfile;
 	return shared_blocks;
 }
-void destroy_shared_Thread_Blocks(shared_Thread_Blocks* shared_data)
+shared_Thread_Blocks* destroy_shared_Thread_Blocks(shared_Thread_Blocks* shared_data)
 {
 	if(NULL == shared_data)
 	{
-		return;
+		return NULL;
 	}
+
+	g_mutex_lock(&shared_data->blocks_mutex);
 	
 	//free the shared data blocks
-	free_shared_data(shared_data->emu_status);
-	free_shared_data(shared_data->input);
-	free_shared_data(shared_data->fb);
-	free(shared_data);
+	shared_data->emu_status = free_shared_data(shared_data->emu_status);
+	shared_data->input = free_shared_data(shared_data->input);
+	shared_data->fb = free_shared_data(shared_data->fb);
+
+	g_mutex_unlock(&shared_data->blocks_mutex);
+
+	//check if we were the final owner of these blocks
+	if(NULL == shared_data->emu_status &&
+		NULL == shared_data->input &&
+		NULL == shared_data->fb)
+	{
+		free(shared_data);
+		shared_data = NULL;
+	}
+
+	return shared_data;
 }
 
 emu_status_flags* get_shared_status_flags(shared_Thread_Blocks* dataBlocks)

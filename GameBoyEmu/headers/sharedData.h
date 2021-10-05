@@ -49,12 +49,12 @@ typedef struct framebuffer_data_t
 shared_Thread_Blocks* create_shared_Thread_Blocks(char* romfile);
 //free a shared thread data structure, caller of this function releases the data inside
 //NOTE: the thread_data blocks are not freed if there are still owners of the data
-void destroy_shared_Thread_Blocks(shared_Thread_Blocks* shared_data);
+shared_Thread_Blocks* destroy_shared_Thread_Blocks(shared_Thread_Blocks* shared_data);
 
 //assign yourself as a owner of the data
 void claim_thread_data(thread_Data_Header* data);
 //release your ownership of the data, free it if you are the last owner
-void free_shared_data(thread_Data_Header* data);
+thread_Data_Header* free_shared_data(thread_Data_Header* data);
 
 //functions for setting the data in the datablock
 emu_status_flags* get_shared_status_flags(shared_Thread_Blocks* dataBlocks);

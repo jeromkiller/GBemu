@@ -8,12 +8,11 @@
 #include "Interrupt.h"
 #include "Opcodes.h"
 #include "IO.h"
-#include <unistd.h>
 
+#include <unistd.h>
 #include <errno.h>
 
 #include "Tools.h"
-//#include "OpcodeLookupTable.h"
 
 static int run(shared_Thread_Blocks* threadData);
 static int check_emu_status(emu_status_flags* status);
@@ -28,7 +27,7 @@ static int run(shared_Thread_Blocks* threadData)
 	char* ROM_Path = get_romfile(threadData);
 	if(NULL == ROM_Path)
 	{
-		ROM_Path = ".roms/bgbtest.gb";
+		ROM_Path = ".roms/Mario.gb";
 	}
 
 	//startup
@@ -41,6 +40,7 @@ static int run(shared_Thread_Blocks* threadData)
 
 ///////////////////////////////////////////////////////////////////////
 	//some user code for testing
+
 	while(!check_emu_status(gameBoy_getEmuStatus(GameBoy)))
 	{
 		handle_newinput(gameboy_getRAM(GameBoy), gameboy_getOldInputData(GameBoy), gameBoy_getInput(GameBoy));
@@ -56,6 +56,8 @@ static int run(shared_Thread_Blocks* threadData)
 
 ///////////////////////////////////////////////////////////////////////
 //cleanup
+	//release our ownership of the shared data
+	destroy_shared_Thread_Blocks(threadData);
 	gameBoy_dispose(GameBoy);
 
     return 0;

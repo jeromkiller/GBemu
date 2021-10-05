@@ -10,6 +10,7 @@ typedef unsigned char RAM;
 #define RAM_LOCATION_ROM_SWAPPABLE_START 0x4000
 #define RAM_LOCATION_ROM_SWAPPABLE_END 0x7FFF
 #define RAM_LOCATION_VIDEO_START 0x8000
+#define RAM_LOCATION_VIDEO_OAM_START 0x8000
 #define RAM_LOCATION_VIDEO_END 0x9FFF
 #define RAM_LOCATION_RAM_SWAPPABLE_START 0xA000
 #define RAM_LOCATION_RAM_SWAPPABLE_END 0xBFFF
@@ -53,4 +54,4 @@ typedef unsigned char RAM;
 RAM* RAM_init(void);
 
 //dispose of the ram stack
-void RAM_dispose(RAM* RAM_ptr);
+RAM* RAM_dispose(RAM* RAM_ptr);

@@ -14,6 +14,10 @@
 #define LINE_VBLANK_START 144
 #define LINE_VBLANK_END 153
 
+#define NUM_OAM_ENTRIES 40
+
+#define USECONDS_PER_FRAME 16742
+
 typedef struct tileLine_t
 {
 	unsigned char lsByte;
@@ -56,6 +60,24 @@ typedef struct LCDC_t
 	unsigned char LCD_enable :1;
 }LCDC;
 
+typedef struct OAM_Attributes_t
+{
+	unsigned char pallete_number_GBC : 2;
+	unsigned char vram_bank : 1;
+	unsigned char pallete_number_DMG : 1;
+	unsigned char X_flip : 1;
+	unsigned char Y_flip : 1;
+	unsigned char BG_priority : 1;
+}OAM_Attributes;
+
+typedef struct OAM_Entry_t
+{
+	unsigned char Y_pos;
+	unsigned char X_pos;
+	unsigned char TileIndex;
+	OAM_Attributes Attributes;
+}OAM_Entry;
+
 struct screenData_t
 {
 	int dotCounter;
@@ -67,13 +89,14 @@ struct screenData_t
 
 	unsigned char scrollX;
 	unsigned char scrollY;
-	unsigned char winodwX;
-	unsigned char winodwY;
+	unsigned char windowX;
+	unsigned char windowY;
 
-	//TODO: sprite array for this line
+	OAM_Entry* sprites[10];
 
 	unsigned char inactiveBuffer;
 	GdkPixbuf* pixbuf[2];
+	GTimer* frameTimer;
 };
 
 typedef struct rgbColor_t
@@ -106,8 +129,8 @@ static unsigned char getPalette(tile *tile, unsigned char pixelX, unsigned char 
 {
 	unsigned char palette = 0;
 	tileLine* line = &tile->line[pixelY];
-	palette = (line->lsByte >> (7 - pixelX)) & 1;
-	palette |= ((line->msByte >> (7 - pixelX)) & 1) << 1;
+	palette = (line->lsByte >> (7 - pixelX)) & 0x01;
+	palette |= ((line->msByte >> (7 - pixelX)) & 0x01) << 1;
 	return palette;
 }
 
@@ -117,7 +140,7 @@ static rgbColor getBackgroundColorVal(RAM* RAM_ptr, unsigned char colorVal)
 	unsigned char val;
 	unsigned char paletteData = *(RAM_ptr + RAM_LOCATION_GRAPHICS_BGP);
 
-	switch (colorVal)
+	switch (colorVal & 0x03)
 	{
 	case 0b00:
 		val = paletteData & 0b11;
@@ -170,18 +193,42 @@ static void oamSearch(screenData* screen_ptr, RAM* RAM_ptr, int dots)
 	screen_ptr->scrollY = *(RAM_ptr + RAM_LOCATION_GRAPHICS_SCY);
 	screen_ptr->scrollX = *(RAM_ptr + RAM_LOCATION_GRAPHICS_SCX);
 	screen_ptr->interruptLine = *(RAM_ptr + RAM_LOCATION_GRAPHICS_LYC);
-	screen_ptr->winodwY = *(RAM_ptr + RAM_LOCATION_GRAPHICS_WINDOW_Y);
-	screen_ptr->winodwX = *(RAM_ptr + RAM_LOCATION_GRAPHICS_WINDOW_X);
+	screen_ptr->windowY = *(RAM_ptr + RAM_LOCATION_GRAPHICS_WINDOW_Y);
+	screen_ptr->windowX = *(RAM_ptr + RAM_LOCATION_GRAPHICS_WINDOW_X);
 
-	//TODO: Sprite support
+	//run over the oam table and store any oam entries for this line
+	LCDC* LCDControl = (LCDC*)(RAM_ptr + RAM_LOCATION_GRAPHICS_LCDC);
+	unsigned char spriteHeight = 8 * (LCDControl->OBJ_size + 1);
+
+	OAM_Entry* OAM_Table = (OAM_Entry*)(RAM_ptr + RAM_LOCATION_VIDEO_OAM_START);
+	unsigned char OAM_List_entry = 0;
+	for(unsigned char i = 0; i < NUM_OAM_ENTRIES; i++)
+	{
+		if(OAM_List_entry < 10)
+		{
+			if((screen_ptr->lineNumber >= OAM_Table[i].Y_pos) &&
+			(screen_ptr->lineNumber <= (OAM_Table[i].Y_pos + spriteHeight)))
+			{
+				screen_ptr->sprites[OAM_List_entry] = &(OAM_Table[i]);
+				OAM_List_entry++;
+			}
+		}
+		else
+		{
+			//our lookuptable is full
+			return;
+		}
+	}
+	//Write null to the lookup table to note the end of the list
+	screen_ptr->sprites[OAM_List_entry] = NULL;
 }
+
+
 
 screenData* screenData_init()
 {
 	screenData* data = malloc(sizeof(screenData));
 	memset(data, 0, sizeof(screenData));
-
-	//data->mode = SCREENMODE_OAM_SEARCH;
 
 	data->pixbuf[0] = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, GRAPHICS_VIEWPORT_WIDTH, GRAPHICS_VIEWPORT_HEIGHT);
 	data->pixbuf[1] = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, GRAPHICS_VIEWPORT_WIDTH, GRAPHICS_VIEWPORT_HEIGHT);
@@ -189,14 +236,41 @@ screenData* screenData_init()
 	gdk_pixbuf_fill(data->pixbuf[0], 0xffffffff);
 	gdk_pixbuf_fill(data->pixbuf[1], 0xffffffff);
 
+	data->frameTimer = g_timer_new();
+	g_timer_start(data->frameTimer);
+
 	return data;
 }
 
-void screenData_dispose(screenData* screenData)
+void performSleep(GTimer* frameTimer)
 {
-	g_object_unref(screenData->pixbuf[0]);
-	g_object_unref(screenData->pixbuf[1]);
-	free(screenData);
+	//TODO: the timing seems a bit off, but that might be because of wsl overhead
+	g_timer_stop(frameTimer);
+	gulong time_taken = 0;
+	g_timer_elapsed(frameTimer, &time_taken);
+	if(time_taken < USECONDS_PER_FRAME)
+	{
+		gulong sleepTime = USECONDS_PER_FRAME - time_taken;
+		g_usleep(sleepTime);
+	}
+	else
+	{
+		printf("WARNING: This frame took longer then expected\n");
+	}
+	g_timer_start(frameTimer);
+}
+
+screenData* screenData_dispose(screenData* screenData)
+{
+	if(NULL != screenData)
+	{
+		g_object_unref(screenData->pixbuf[0]);
+		g_object_unref(screenData->pixbuf[1]);
+		g_timer_stop(screenData->frameTimer);
+		g_timer_destroy(screenData->frameTimer);
+		free(screenData);
+	}
+	return NULL;
 }
 
 void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb, int newCycles)
@@ -250,6 +324,13 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 						{
 							flags->LCDC = 1;
 						}
+
+						//swap the framebuffer around
+						framebuffer_data* fb_data = get_framebuffer_data(fb);
+						fb_data->framebuff = screen_ptr->pixbuf[screen_ptr->inactiveBuffer];
+						fb_data->buffer_id = screen_ptr->inactiveBuffer;
+						screen_ptr->inactiveBuffer = screen_ptr->inactiveBuffer ? 0 : 1;
+						unlock_shared_data(fb);
 					}
 					else
 					{
@@ -295,6 +376,7 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 					{
 						//restart from the start of the frame
 						screen_ptr->lineNumber = 0;
+						performSleep(screen_ptr->frameTimer);
 						LCDstatus->mode = SCREENMODE_OAM_SEARCH;
 						if(LCDstatus->OAM_Interrupt_enable)
 						{
@@ -339,22 +421,45 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 				unsigned char bgTileMapAdressingMode = LCDcontrol->BG_Window_tile_data;
 				unsigned short bgTileDataLocation = bgTileMapAdressingMode ? 0x8000 : 0x8800;
 				unsigned short bgTileMapLocation = LCDcontrol->BG_tile_map ? 0x9C00 : 0x9800;
+				unsigned short windowTileMapLocation = LCDcontrol->Window_tile_map ? 0x9C00 : 0x9800;
 				unsigned char screenX = screen_ptr->rowNumber;
 				unsigned char screenY = screen_ptr->lineNumber;
+				unsigned char windowX = screen_ptr->windowX - 7;
+				unsigned char windowY = screen_ptr->windowY;
 				unsigned char viewportX = screen_ptr->scrollX;
 				unsigned char viewportY = screen_ptr->scrollY;
 
 				//Place a pixel for every left dot
 				while(dotsLeft > 0)
 				{
-					//find info for the pixel, and draw it to the framebuffer
-					unsigned char tileId = getTileId(RAM_ptr + bgTileMapLocation, screenX + viewportX, screenY + viewportY);
-					if(!bgTileMapAdressingMode)
+					unsigned char pixPalette;
+					//check if the window is active on this pixel
+					if(LCDcontrol->Window_enable && (screenX >= windowX) && (screenY >= windowY))
 					{
-						tileId += 128;
+						//get the tile id for the window
+						unsigned char tileId = getTileId(RAM_ptr + bgTileMapLocation, screenX - windowX, screenY - windowY);
+						if(!bgTileMapAdressingMode)
+						{
+							tileId += 128;
+						}
+
+						tile* currentTile = getTileFromId(RAM_ptr + windowTileMapLocation, tileId);
+						pixPalette = getPalette(currentTile, (screenX - windowX) % 8, (screenY - windowY) % 8);
 					}
-					tile* currentTile = getTileFromId(RAM_ptr + bgTileDataLocation, tileId);
-					unsigned char pixPalette = getPalette(currentTile, (screenX + viewportX) % 8, (screenY + viewportY) % 8);
+					else
+					{
+						//get the tile id for the background layer
+						unsigned char tileId = getTileId(RAM_ptr + bgTileMapLocation, screenX + viewportX, screenY + viewportY);
+						if(!bgTileMapAdressingMode)
+						{
+							tileId += 128;
+						}
+
+						tile* currentTile = getTileFromId(RAM_ptr + bgTileDataLocation, tileId);
+						pixPalette = getPalette(currentTile, (screenX + viewportX) % 8, (screenY + viewportY) % 8);
+					}
+
+					//find info for the pixel, and draw it to the framebuffer
 					rgbColor pixColor = getBackgroundColorVal(RAM_ptr, pixPalette);
 					putPixel(screen_ptr->pixbuf[screen_ptr->inactiveBuffer], screenX, screenY, pixColor);
 
@@ -385,11 +490,4 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 
 	//update the line number in ram
 	*(RAM_ptr + RAM_LOCATION_GRAPHICS_LY) = screen_ptr->lineNumber;
-
-	//testing code
-	//ugly quick write to the shared data pointer
-	framebuffer_data* fb_data = get_framebuffer_data(fb);
-	fb_data->framebuff = screen_ptr->pixbuf[0];
-	fb_data->buffer_id = fb_data->buffer_id ? 0 : 1;
-	unlock_shared_data(fb);
 }

@@ -71,26 +71,21 @@ GameBoy_Instance* gameBoy_init(shared_Thread_Blocks* sharedBlocks, char* romPath
 	return newGameBoy;
 }
 
-void gameBoy_dispose(GameBoy_Instance* GameBoy)
+GameBoy_Instance* gameBoy_dispose(GameBoy_Instance* GameBoy)
 {
 	if(NULL != GameBoy)
 	{
-		//release our ownership of the shared data
-		free_shared_data(GameBoy->emu_status);
-		free_shared_data(GameBoy->input);
-		free_shared_data(GameBoy->fb);
-
 		//first dispose the member structs
-		CPU_dispose(GameBoy->CPU_ref);
-		Mapper_dispose(GameBoy->MAPPER_ref);
-		RAM_dispose(GameBoy->RAM_ref);
-		interruptRegisters_dispose(GameBoy->Interrupt_ref);
-		screenData_dispose(GameBoy->graphics_ref);
+		GameBoy->CPU_ref = CPU_dispose(GameBoy->CPU_ref);
+		GameBoy->MAPPER_ref = Mapper_dispose(GameBoy->MAPPER_ref);
+		GameBoy->RAM_ref = RAM_dispose(GameBoy->RAM_ref);
+		GameBoy->Interrupt_ref = interruptRegisters_dispose(GameBoy->Interrupt_ref);
+		GameBoy->graphics_ref = screenData_dispose(GameBoy->graphics_ref);
 
 		//then free the gameboy struct itself
 		free(GameBoy);
-		GameBoy = NULL;
 	}
+	return NULL;
 }
 
 emu_status_flags* gameBoy_getEmuStatus(GameBoy_Instance* GB)

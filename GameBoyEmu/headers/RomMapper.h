@@ -58,7 +58,7 @@ typedef struct Memory_Mapper_struct
 Memory_Mapper* Mapper_init(char* romPath, RAM* RAM_ptr);
 
 //get rid of the rom mapper, and free the allocated 
-void Mapper_dispose(Memory_Mapper* mapper);
+Memory_Mapper* Mapper_dispose(Memory_Mapper* mapper);
 
 //use the gameboy logo as a checksum
 int check_gameboyLogo(RAM* RAM_ptr);

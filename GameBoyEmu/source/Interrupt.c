@@ -33,13 +33,13 @@ Interrupt_registers* interruptRegisters_init()
 	return newInterupts;
 }
 
-void interruptRegisters_dispose(Interrupt_registers* interrupt_data)
+Interrupt_registers* interruptRegisters_dispose(Interrupt_registers* interrupt_data)
 {
 	if(NULL != interrupt_data)
 	{
 		free(interrupt_data);
-		interrupt_data = NULL;
 	}
+	return NULL;
 }
 
 //main function for handeling interrupts

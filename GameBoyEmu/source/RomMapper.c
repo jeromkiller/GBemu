@@ -75,11 +75,11 @@ Memory_Mapper* Mapper_init(char* romPath, RAM* RAM_ptr)
 	return mapper;
 }
 
-void Mapper_dispose(Memory_Mapper* mapper)
+Memory_Mapper* Mapper_dispose(Memory_Mapper* mapper)
 {
 	if(mapper == NULL)
 	{
-		return;
+		return NULL;
 	}
 	//first clear the ram banks
 	{
@@ -92,7 +92,7 @@ void Mapper_dispose(Memory_Mapper* mapper)
 
 			currentBank = nextBank;
 		}
-	mapper->ramBank_ptr = NULL;
+		mapper->ramBank_ptr = NULL;
 	}
 
 	{
@@ -105,10 +105,11 @@ void Mapper_dispose(Memory_Mapper* mapper)
 
 			currentBank = nextBank;
 		}
-	mapper->romBank_ptr = NULL;
+		mapper->romBank_ptr = NULL;
 	}
 	
 	free(mapper);
+	return NULL;
 }
 
 Memory_Mapper* build_mapper(FILE* romFile, RAM* RAM_ptr)
