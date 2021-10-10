@@ -1,5 +1,6 @@
 #include "IO.h"
 #include "Interrupt.h"
+#include "GameBoy.h"
 
 //other includes
 #include <stdio.h>
@@ -12,6 +13,7 @@ unsigned char use_internalClock(RAM* RAM_ptr);
 //print the serial data
 void print_serialInfo(RAM* RAM_ptr);
 
+static unsigned short IO_TIMER_CLOCKSELECT[4] = {1024, 16, 64, 256};
 
 void perform_serialOperation(RAM* RAM_ptr)
 {
@@ -155,7 +157,7 @@ void handle_newinput(RAM* RAM_ptr, player_input_data* old_data, player_input* ne
 	//if so fire off an interrupt
 	if(buttons_changed)
 	{
-		interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
+		//interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
 		//flags->playerInput = 1; //TODO: turn back on again
 	};
 
@@ -171,4 +173,17 @@ void write_to_input(RAM* RAM_ptr, player_input_data* input, unsigned char value)
 	*(RAM_ptr + RAM_LOCATION_IO_JOYPAD) = oldVal | newBits;
 
 	set_input_bits(RAM_ptr, input);
+}
+
+//writes to Timer Registers
+void write_to_DIV(RAM* RAM_ptr, TimerData* Timer_ptr)
+{
+	Timer_ptr->SystemTimer = 0;
+	Timer_ptr->LastSystemTimer = 0;
+	Timer_ptr->TimerStep = 0;
+	*(RAM_ptr + RAM_LOCATION_IO_DIV) = 0;
+}
+void write_to_TAC(unsigned char Value, TimerData* Timer_ptr)
+{
+	Timer_ptr->TimerStep = Timer_ptr->TimerStep % IO_TIMER_CLOCKSELECT[Value & TIMER_TAC_CLOCKSELECT_BITS];
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameBoy.h"
+#include "GB_type.h"
 
 //enums
 typedef enum Opcode_Parameters
@@ -70,11 +70,6 @@ void performNextOpcode(GameBoy_Instance* GB);
 
 //Adds a couple of cycles to the cycle counter
 void addCycleCount(GameBoy_Instance* GB, int cycles);
-
-//push a value to the virtual stack
-void PUSH_Value(unsigned short value, CPU* CPU_ptr, RAM* RAM_ptr);
-//pop a value from the virtual stack
-unsigned short POP_Value(CPU* CPU_ptr, RAM* RAM_ptr);
 
 //functions for normal opcodes
 void OP_ADC(void *value1, void *value2, GameBoy_Instance* GB);

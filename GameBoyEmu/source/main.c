@@ -12,12 +12,11 @@ static shared_Thread_Blocks* sharedData = NULL;
 static GtkWidget *window = NULL;
 static GThread* emulatorThread = NULL;
 static char* romfile = NULL;
-static char emu_status = 0;
 
 typedef struct screenAndBuffer_t
 {
 	GtkWidget* screen;
-	framebuffer* fb;
+	framebuffer** fb;
 }screenAndBuffer;
 
 //---------------------
@@ -67,11 +66,14 @@ void handleKeyEvent(GtkWidget *widget, GdkEventKey *event, player_input* sharedI
 
 static int update_screen(void* sb)
 {
-	if(emu_status != 0)
-	{
 		static unsigned char activeWindow;
 		screenAndBuffer* screenAndBuff = (screenAndBuffer*)sb;
-		framebuffer_data* fb_data = get_framebuffer_data(screenAndBuff->fb);
+
+		framebuffer_data* fb_data = get_framebuffer_data(*(screenAndBuff->fb));
+		if(fb_data == NULL)
+		{
+			return 0;
+		}
 	
 		if(activeWindow != fb_data->buffer_id)
 		{
@@ -79,8 +81,7 @@ static int update_screen(void* sb)
 			activeWindow = fb_data->buffer_id;
 		}
 	
-		unlock_shared_data(screenAndBuff->fb);
-	}
+		unlock_shared_data(*(screenAndBuff->fb));
 
 	return 1;
 }
@@ -135,9 +136,9 @@ void setupSignals(GtkWidget* window, shared_Thread_Blocks* sharedDataBlocks)
 	//get the shared data headers
 	emu_status_flags* emu_status = get_shared_status_flags(sharedDataBlocks);
 	player_input* input = get_shared_player_input(sharedDataBlocks);
-	framebuffer* fb = get_shared_framebuffer(sharedDataBlocks);
+	framebuffer** fb_ref = get_fbHeader_ref(sharedDataBlocks);
 
-	if(emu_status == NULL || input == NULL || fb == NULL)
+	if(emu_status == NULL || input == NULL || *fb_ref == NULL)
 	{
 		printf("Error: shared data block pointers are NULL\n");
 		exit(0);
@@ -150,11 +151,11 @@ void setupSignals(GtkWidget* window, shared_Thread_Blocks* sharedDataBlocks)
 	g_signal_connect(G_OBJECT(window), "key-press-event", G_CALLBACK(handleKeyEvent), input);
 	g_signal_connect(G_OBJECT(window), "key-release-event", G_CALLBACK(handleKeyEvent), input);
 
-	screenAndBuffer* packedData = malloc(sizeof(packedData));
+	screenAndBuffer* packedData = malloc(sizeof(screenAndBuffer));
 	GList* window_children = gtk_container_get_children(GTK_CONTAINER(window));
 	GList* vbox_children = gtk_container_get_children(GTK_CONTAINER(window_children->data));
 	packedData->screen = vbox_children->data;
-	packedData->fb = fb;
+	packedData->fb = fb_ref;
 	g_timeout_add(10, update_screen, packedData);
 
 }

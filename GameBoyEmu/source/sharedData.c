@@ -52,6 +52,7 @@ static player_input* create_shared_input();
 static framebuffer* create_shared_framebuffer();
 static int validate_shared_data(thread_Data_Header* data, SharedDataType type);
 static void* get_shared_data_from_header(thread_Data_Header* data);
+static thread_Data_Header** get_header_ref(shared_Thread_Blocks* dataBlocks, SharedDataType type);
 
 //create the header for the data block
 //the creator of this block is the first owner of the shared data inside
@@ -112,7 +113,7 @@ static framebuffer* create_shared_framebuffer()
 	shared_block->owner_count = 1;
 
 	//create the framebuffer struct
-	framebuffer_data* frame_data = (framebuffer_data*)malloc(sizeof(player_input_data));
+	framebuffer_data* frame_data = (framebuffer_data*)malloc(sizeof(framebuffer_data));
 	memset(frame_data, 0, sizeof(framebuffer_data));
 	shared_block->data_ptr.framebuffer = frame_data;
 
@@ -243,6 +244,28 @@ framebuffer* get_shared_framebuffer(shared_Thread_Blocks* dataBlocks)
 		return NULL;
 	}
 	return dataBlocks->fb;
+}
+
+//get a refference to the frame buffer
+thread_Data_Header** get_fbHeader_ref(shared_Thread_Blocks* dataBlocks)
+{
+	return get_header_ref(dataBlocks, SHARED_DATA_TYPE_FRAMEBUFFER);
+}
+
+//get a refference to the header
+thread_Data_Header** get_header_ref(shared_Thread_Blocks* dataBlocks, SharedDataType type)
+{
+	switch(type)
+	{
+		case SHARED_DATA_TYPE_STATUS:
+			return &dataBlocks->emu_status;
+		case SHARED_DATA_TYPE_PLAYER_INPUT:
+			return &dataBlocks->input;
+		case SHARED_DATA_TYPE_FRAMEBUFFER:
+			return &dataBlocks->fb;
+		default:
+			return NULL;
+	}
 }
 
 char* get_romfile(shared_Thread_Blocks* dataBlocks)

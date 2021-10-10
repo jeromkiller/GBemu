@@ -17,7 +17,8 @@ GTK_LIBS = -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -lharfbuzz -latk-1.0 -lc
 
 #compiler and flags to use
 CC=gcc
-CFLAGS:= -Wall -g -I $(HDIR) $(GTK_INCLUDE) $(GTK_LIBS)
+CFLAGS:= -Wall -I $(HDIR) $(GTK_INCLUDE) $(GTK_LIBS)
+DEBUGFLAGS = -g -fsanitize=address -fsanitize=undefined
 
 #File paths
 SRCS := $(wildcard $(SDIR)/*.c)
@@ -31,12 +32,12 @@ TESTEXCLUDES:=$(ODIR)/GameBoyEmu.o $(ODIR)/main.o
 #build .o files
 $(ODIR)/%.o : $(SDIR)/%.c $(HEAD) 
 	@echo building object: $@;
-	@$(CC) -o $@ -c $< $(CFLAGS)
+	@$(CC) -o $@ -c $< $(CFLAGS) $(DEBUGFLAGS)
 
 #build project 
 $(FILENAME) : $(filter-out $(MAINEXCLUDES), $(OBJS))
 	@echo building executable: $@;
-	@$(CC) -o $@ $^ $(CFLAGS)
+	@$(CC) -o $@ $^ $(CFLAGS) $(DEBUGFLAGS)
 
 #before objects can be built, the object folder has to be created
 $(OBJS): | $(ODIR)
@@ -54,7 +55,7 @@ clean :
 #build the version of the program
 $(TESTPROGRAM) : $(filter-out $(TESTEXCLUDES), $(OBJS))
 	@echo building executable: $@;
-	@$(CC) -o $@ $^ $(CFLAGS)
+	@$(CC) -o $@ $^ $(CFLAGS) $(DEBUGFLAGS)
 
 #make tests
 #build and run the tests automaticaly

@@ -26,11 +26,7 @@ struct GameBoy_Instance_t
 	player_input_data oldInput;
 };
 
-//forward declarations
-//check if a certain value is in range of rangeStart and rangeEnd
-static unsigned char inRange(unsigned short writeLocation, unsigned short RangeStart, unsigned short RangeEnd);
-//check if a pointer value is in range of rangeStart and rangeEnd
-static unsigned char inPointerRange(void* writeLocation, void* RangeStart, void* RangeEnd);
+//function implementations
 
 GameBoy_Instance* gameBoy_init(shared_Thread_Blocks* sharedBlocks, char* romPath)
 {
@@ -138,83 +134,4 @@ player_input_data* gameboy_getOldInputData(GameBoy_Instance* GB)
 	return &(GB->oldInput);
 }
 
-static unsigned char inRange(unsigned short writeLocation, unsigned short RangeStart, unsigned short RangeEnd)
-{
-	return ((writeLocation >= RangeStart) && (writeLocation <= RangeEnd));
-}
 
-static unsigned char inPointerRange(void* writeLocation, void* RangeStart, void* RangeEnd)
-{
-	return ((writeLocation >= RangeStart) && (writeLocation <= RangeEnd));
-}
-
-
-void writeOperation(unsigned char* value1, unsigned char* value2, GameBoy_Instance* GB)
-{
-	//check if the write is done to a special part of memory
-	RAM* ram = gameboy_getRAM(GB);
-	if(inPointerRange(value1, ram + RAM_START, ram + RAM_END))
-	{
-		unsigned short writeLocation = 0;
-		if(value1 > ram)
-		{
-			writeLocation = (unsigned short)(value1 - ram);
-		}
-		else
-		{
-			writeLocation = (unsigned short)(ram - value1);
-		}
-		
-		//check if the write is to a special address
-		switch(writeLocation)
-		{
-			case RAM_LOCATION_IO_JOYPAD:
-			{
-				write_to_input(gameboy_getRAM(GB), gameboy_getOldInputData(GB), *value2);
-				return;
-			}
-			case RAM_LOCATION_IO_DIV:
-			{
-				//reset the systemTimer, this resets div and affects the timer
-				TimerData* timer = gameboy_getTimer(GB);
-				timer->SystemTimer = 0;
-				timer->LastSystemTimer = 0;
-				timer->TimerStep = 0;
-				*(ram + RAM_LOCATION_IO_DIV) = 0;
-				return;
-			}
-			case RAM_LOCATION_IO_TAC:
-			{
-				//If the clock select changes, the TimerStep has to be recalculated
-				TimerData* timer = gameboy_getTimer(GB);
-				timer->TimerStep = timer->TimerStep % IO_TIMER_CLOCKSELECT[*value2 & TIMER_TAC_CLOCKSELECT_BITS];
-				break;
-			}
-			case RAM_LOCATION_IO_TIMA:
-			{
-				//nothing special, just for debugging
-				TimerData* timer = gameboy_getTimer(GB);
-				timer->TimerStep = timer->TimerStep;
-				break;
-			}
-			default:
-			//check if the write is done to a special address range
-			//see if the write is being made to ROM
-			if(inRange(writeLocation, RAM_LOCATION_ROM_0_START, RAM_LOCATION_ROM_SWAPPABLE_END))
-			{
-				write_to_rom(writeLocation, *value2, gameboy_getMemMapper(GB), gameboy_getRAM(GB));
-				return;
-			}
-			//check if the write is to cartridge ram while its dissabled
-			else if(inRange(writeLocation, RAM_LOCATION_RAM_SWAPPABLE_START, RAM_LOCATION_RAM_SWAPPABLE_END) &&
-				!(gameboy_getMemMapper(GB)->ram_enabled))
-			{
-				return;
-			}
-		}
-	}
-
-	//if none of the above or if a break is used,
-	//write the value
-	*value1 = *value2;
-}

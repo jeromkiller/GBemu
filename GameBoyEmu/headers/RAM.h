@@ -1,5 +1,7 @@
 #pragma once
 
+#include "GB_type.h"
+
 //defines
 typedef unsigned char RAM;
 
@@ -55,3 +57,16 @@ RAM* RAM_init(void);
 
 //dispose of the ram stack
 RAM* RAM_dispose(RAM* RAM_ptr);
+
+//get 8bit val
+unsigned char get_8bitval(void* value, GameBoy_Instance* GB);
+//get 16bit val
+unsigned short get_16bitval(void* value, GameBoy_Instance* GB);
+//set 8bit val, Gameboy_Instance added for reads from special regs in the future
+void set_8bitval(unsigned char* WriteLoc, unsigned char val, GameBoy_Instance* GB);
+//set 16bit val, Gameboy_Instance added for reads from special regs in the future
+void set_16bitval(void* writeloc, unsigned short val, GameBoy_Instance* GB);
+//push a value to the virtual stack
+void PUSH_Value(unsigned short value, GameBoy_Instance* GB);
+//pop a value from the virtual stack
+unsigned short POP_Value(GameBoy_Instance* GB);

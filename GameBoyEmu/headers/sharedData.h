@@ -71,4 +71,6 @@ player_input_data* get_player_input_data(thread_Data_Header* data);
 framebuffer_data* get_framebuffer_data(thread_Data_Header* data);
 //unlock shared data
 void unlock_shared_data(thread_Data_Header* data);
+//get a refference to the frame buffer
+thread_Data_Header** get_fbHeader_ref(shared_Thread_Blocks* dataBlocks);
 

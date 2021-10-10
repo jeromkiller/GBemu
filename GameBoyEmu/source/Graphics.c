@@ -16,6 +16,11 @@
 
 #define NUM_OAM_ENTRIES 40
 
+#define SCREENMODE_HBLANK 0
+#define SCREENMODE_VBLANK 1
+#define SCREENMODE_OAM_SEARCH 2
+#define SCREENMODE_PLACING_PIX 3
+
 #define USECONDS_PER_FRAME 16742
 
 typedef struct tileLine_t
@@ -29,23 +34,15 @@ typedef struct tile_t
 	tileLine line[8];
 }tile;
 
-typedef enum screenMode_t
-{
-	SCREENMODE_HBLANK = 0,
-	SCREENMODE_VBLANK,
-	SCREENMODE_OAM_SEARCH,
-	SCREENMODE_PLACING_PIX,
-}screenMode;
-
 typedef struct STAT_t
 {
-		screenMode mode :2;
-		unsigned char LYC_Flag :1;
-		unsigned char HBlank_Interrupt_enable :1;
-		unsigned char VBlank_Interrupt_enable :1;
-		unsigned char OAM_Interrupt_enable :1;
-		unsigned char LYC_Interrupt_enable :1;
-		unsigned char null :1;
+	unsigned char mode :2;
+	unsigned char LYC_Flag :1;
+	unsigned char HBlank_Interrupt_enable :1;
+	unsigned char VBlank_Interrupt_enable :1;
+	unsigned char OAM_Interrupt_enable :1;
+	unsigned char LYC_Interrupt_enable :1;
+	unsigned char null :1;
 }STAT;
 
 typedef struct LCDC_t
@@ -204,19 +201,18 @@ static void oamSearch(screenData* screen_ptr, RAM* RAM_ptr, int dots)
 	unsigned char OAM_List_entry = 0;
 	for(unsigned char i = 0; i < NUM_OAM_ENTRIES; i++)
 	{
-		if(OAM_List_entry < 10)
+		//check if the sprite intersects the line we are currently drawing
+		if((screen_ptr->lineNumber >= OAM_Table[i].Y_pos) &&
+		(screen_ptr->lineNumber <= (OAM_Table[i].Y_pos + spriteHeight)))
 		{
-			if((screen_ptr->lineNumber >= OAM_Table[i].Y_pos) &&
-			(screen_ptr->lineNumber <= (OAM_Table[i].Y_pos + spriteHeight)))
+			screen_ptr->sprites[OAM_List_entry] = &(OAM_Table[i]);
+			OAM_List_entry++;
+			
+			//check if our oam table is full
+			if(OAM_List_entry == 10)
 			{
-				screen_ptr->sprites[OAM_List_entry] = &(OAM_Table[i]);
-				OAM_List_entry++;
+				return;
 			}
-		}
-		else
-		{
-			//our lookuptable is full
-			return;
 		}
 	}
 	//Write null to the lookup table to note the end of the list

@@ -4,7 +4,6 @@
 
 #include "CPU.h"
 #include "RAM.h"
-#include "GameBoy.h"
 
 //initiate CPU
 CPU* CPU_init(void)//, Interrupt_registers* Interrupt_ptr)

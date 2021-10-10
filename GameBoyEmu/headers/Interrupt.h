@@ -1,7 +1,7 @@
 #pragma once
 
-#include "RAM.h"
-#include "CPU.h"
+//forward declerations
+#include "GB_type.h"
 
 //Enums
 typedef enum CPU_statuses
@@ -48,4 +48,4 @@ Interrupt_registers* interruptRegisters_init();
 Interrupt_registers* interruptRegisters_dispose(Interrupt_registers* interrupt_data);
 
 //main function for handeling interrupts
-void check_interrupts(Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM_ptr);
+void check_interrupts(Interrupt_registers* interrupt_ptr, GameBoy_Instance* GB);

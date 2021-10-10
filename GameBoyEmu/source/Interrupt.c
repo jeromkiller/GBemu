@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "GameBoy.h"
 #include "Interrupt.h"
 #include "RAM.h"
 #include "Opcodes.h"
@@ -15,7 +16,7 @@
 #define INTERRUPT_JUMP_BUTTONS (0x0060)
 
 //local functions
-void perform_interrupt(unsigned char InterruptLocation, Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM_ptr);
+void perform_interrupt(unsigned short InterruptLocation, Interrupt_registers* interrupt_ptr, GameBoy_Instance* GB);
 
 
 Interrupt_registers* interruptRegisters_init()
@@ -43,7 +44,7 @@ Interrupt_registers* interruptRegisters_dispose(Interrupt_registers* interrupt_d
 }
 
 //main function for handeling interrupts
-void check_interrupts(Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM_ptr)
+void check_interrupts(Interrupt_registers* interrupt_ptr, GameBoy_Instance* GB)
 {
 	//check if the IME is set
 	switch(interrupt_ptr->Interrupt_master_enable)
@@ -64,6 +65,7 @@ void check_interrupts(Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM
 	}
 
 	//check if any of the intterupt flags are set
+	RAM* RAM_ptr = gameboy_getRAM(GB);
 	interruptFlags flags;
 	interruptFlags enableFlags;
 	flags.value = *(RAM_ptr + RAM_LOCATION_IO_IF);
@@ -85,31 +87,30 @@ void check_interrupts(Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM
 		return;
 	}
 	
-
 	if(flags.VBlank)
 	{
 		flags.VBlank = 0;
-		perform_interrupt(INTERRUPT_JUMP_VBLANK, interrupt_ptr, CPU_ptr, RAM_ptr);
+		perform_interrupt(INTERRUPT_JUMP_VBLANK, interrupt_ptr, GB);
 	}
 	else if(flags.LCDC)
 	{
 		flags.LCDC = 0;
-		perform_interrupt(INTERRUPT_JUMP_LCDCSTATUS, interrupt_ptr, CPU_ptr, RAM_ptr);
+		perform_interrupt(INTERRUPT_JUMP_LCDCSTATUS, interrupt_ptr, GB);
 	}
 	else if(flags.timerOverflow)
 	{
 		flags.timerOverflow = 0;
-		perform_interrupt(INTERRUPT_JUMP_TIMER, interrupt_ptr, CPU_ptr, RAM_ptr);
+		perform_interrupt(INTERRUPT_JUMP_TIMER, interrupt_ptr, GB);
 	}
 	else if(flags.serialComplete)
 	{
 		flags.serialComplete = 0;
-		perform_interrupt(INTERRUPT_JUMP_SERIAL, interrupt_ptr, CPU_ptr, RAM_ptr);
+		perform_interrupt(INTERRUPT_JUMP_SERIAL, interrupt_ptr, GB);
 	}
 	else if(flags.playerInput)
 	{
 		flags.playerInput = 0;
-		perform_interrupt(INTERRUPT_JUMP_BUTTONS, interrupt_ptr, CPU_ptr, RAM_ptr);
+		perform_interrupt(INTERRUPT_JUMP_BUTTONS, interrupt_ptr, GB);
 	}
 
 	
@@ -118,14 +119,14 @@ void check_interrupts(Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM
 	*(RAM_ptr + RAM_LOCATION_IO_IF) = flags.value;
 }
 
-void perform_interrupt(unsigned char InterruptLocation, Interrupt_registers* interrupt_ptr, CPU* CPU_ptr, RAM* RAM_ptr)
+void perform_interrupt(unsigned short InterruptLocation, Interrupt_registers* interrupt_ptr, GameBoy_Instance* GB)
 {
 	//disable the interrupts
 	interrupt_ptr->Interrupt_master_enable = INTERRUPT_DISABLED;
 
 	//push the program counter to the stack
-	PUSH_Value(CPU_ptr->PC, CPU_ptr, RAM_ptr);
+	PUSH_Value(gameboy_getCPU(GB)->PC, GB);
 
 	//jump to the interrupt address
-	CPU_ptr->PC = InterruptLocation;
+	set_16bitval(&(gameboy_getCPU(GB)->PC), InterruptLocation, GB);
 }

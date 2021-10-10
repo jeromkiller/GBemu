@@ -44,7 +44,7 @@ static int run(shared_Thread_Blocks* threadData)
 	while(!check_emu_status(gameBoy_getEmuStatus(GameBoy)))
 	{
 		handle_newinput(gameboy_getRAM(GameBoy), gameboy_getOldInputData(GameBoy), gameBoy_getInput(GameBoy));
-		check_interrupts(gameboy_getInterruptRegs(GameBoy), gameboy_getCPU(GameBoy), gameboy_getRAM(GameBoy));
+		check_interrupts(gameboy_getInterruptRegs(GameBoy), GameBoy);
 		performNextOpcode(GameBoy);
 		perform_serialOperation(gameboy_getRAM(GameBoy));
 		TimerData* Timer = gameboy_getTimer(GameBoy);

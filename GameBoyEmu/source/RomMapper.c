@@ -259,7 +259,7 @@ Data_bank* build_RomBanks(FILE* RomFile, unsigned char num_banks)
 Data_bank* create_RomBank(FILE* RomFile, unsigned int bankId)
 {
 	//allocate a new rombank, and a bank worth of data
-	Data_bank* new_bank = (Data_bank*)malloc(sizeof(Data_bank*));
+	Data_bank* new_bank = (Data_bank*)malloc(sizeof(Data_bank));
 	unsigned char* bankData = (unsigned char*)malloc(sizeof(unsigned char) * ROM_BANK_SIZE);
 	
 	//set the params for the rom bank

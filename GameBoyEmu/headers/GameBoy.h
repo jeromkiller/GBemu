@@ -1,15 +1,13 @@
 #pragma once
 
 //includes
+#include "GB_type.h"
 #include "CPU.h"
 #include "RAM.h"
 #include "Interrupt.h"
 #include "RomMapper.h"
 #include "sharedData.h"
 #include "Graphics.h"
-
-//forward declrations
-typedef struct GameBoy_Instance_t GameBoy_Instance;
 
 //structures
 typedef struct TimerData_t
@@ -39,4 +37,3 @@ screenData* gameboy_getScreenData(GameBoy_Instance* GB);
 TimerData* gameboy_getTimer(GameBoy_Instance* GB);
 player_input_data* gameboy_getOldInputData(GameBoy_Instance* GB);
 
-void writeOperation(unsigned char* value1, unsigned char* value2, GameBoy_Instance* GB);

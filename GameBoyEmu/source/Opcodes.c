@@ -11,14 +11,13 @@
 
 //local functions
 //get a pointer to the required opcode parameter
-void* getDataFromParameter(GameBoy_Instance* GB, Opcode_Parameter param);
+static void* getDataFromParameter(GameBoy_Instance* GB, Opcode_Parameter param);
 //perform the opcode
-void performOpcode(GameBoy_Instance* GB, unsigned char opcode);
+static void performOpcode(GameBoy_Instance* GB, unsigned char opcode);
 //Read 8bit data from pc
-unsigned char* Read_PC8(GameBoy_Instance* GB) ;
+static unsigned char* Read_PC8(GameBoy_Instance* GB) ;
 //Read 16bit data from pc
-unsigned short* Read_PC16(GameBoy_Instance* GB);
-
+static unsigned short* Read_PC16(GameBoy_Instance* GB);
 
 //read the value in memory at the Program Counter, increase it by 1 and return the read value.
 unsigned char* Read_PC8(GameBoy_Instance* GB) 
@@ -116,8 +115,8 @@ void* getDataFromParameter(GameBoy_Instance* GB, Opcode_Parameter param)
 	{
 		//LSB first, i don't know if this works right, right now...
 		addCycleCount(GB, 3);
-		unsigned short address = *Read_PC16(GB);
-		return gameboy_getRAM(GB) + address;
+		unsigned short* address = Read_PC16(GB);
+		return gameboy_getRAM(GB) + get_16bitval(address, GB);
 	}
 	case RELATIVE_8BIT:	//signed value added to PC, but i can't add the value to the pointer directly...
 		addCycleCount(GB, 2);
@@ -172,18 +171,22 @@ void addCycleCount(GameBoy_Instance* GB, int cycles)
 	timer->SystemTimer += cycles * 4;
 }
 
-void PUSH_Value(unsigned short value, CPU* CPU_ptr, RAM* RAM_ptr)
+void PUSH_Value(unsigned short value, GameBoy_Instance* GB)
 {
+	CPU* CPU_ptr = gameboy_getCPU(GB);
+	RAM* RAM_ptr = gameboy_getRAM(GB);
 	CPU_ptr->SP -= 2;
 	unsigned short* StackLocation = (unsigned short*)(RAM_ptr + CPU_ptr->SP);
-	*StackLocation = value;
+	set_16bitval(StackLocation, value, GB);
 }
 
-unsigned short POP_Value(CPU* CPU_ptr, RAM* RAM_ptr)
+unsigned short POP_Value(GameBoy_Instance* GB)
 {
+	CPU* CPU_ptr = gameboy_getCPU(GB);
+	RAM* RAM_ptr = gameboy_getRAM(GB);
 	unsigned short* StackLocation = (unsigned short*)(RAM_ptr + CPU_ptr->SP);
 	CPU_ptr->SP += 2;
-	return *StackLocation;
+	return get_16bitval(StackLocation, GB);
 }
 
 //functions for normal opcodes
@@ -192,20 +195,20 @@ unsigned short POP_Value(CPU* CPU_ptr, RAM* RAM_ptr)
 void OP_ADC(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
-	unsigned char* val1 = (unsigned char*)value1;
-	unsigned char* val2 = (unsigned char*)value2;
+	unsigned char val1 = get_8bitval(value1, GB);
+	unsigned char val2 = get_8bitval(value2, GB);
 	unsigned char carry = flags->Carry?1:0;	//a set carry comes out as 255 for some reason
 
-	unsigned short result = *val1 + (*val2 + carry);
+	unsigned short result = val1 + (val2 + carry);
 	//check if the first byte of the result is zero
 	flags->Zero = (result & 0xff)? 0:1;
 	flags->Subtract = 0;
 	//check if the low nibbles added together cause an overflow to bit 4
-	flags->HCarry = (((*val1 & 0xf) + ((*val2 & 0xf) + carry)) & 0x10)? 1:0;
+	flags->HCarry = (((val1 & 0xf) + ((val2 & 0xf) + carry)) & 0x10)? 1:0;
 	//check if the result rolled over into the second byte
 	flags->Carry = (result & 0x0100)? 1:0;
 
-	*val1 = result;
+	set_8bitval(value1, result, GB);
 
 	addCycleCount(GB, 1);
 }
@@ -215,35 +218,36 @@ void OP_ADD16(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
 	unsigned int result = 0;
-	unsigned short* val1 = (unsigned short*)value1;
+	unsigned short val1 = get_16bitval(value1, GB);
 
 	if(value1 == &(gameboy_getCPU(GB)->SP))
 	{
-		signed char* val2 = (signed char*)value2;
+		//get value as signed 8bit val
+		signed char val2 = *(signed char*)value2;
 
 		//Zero flag gets reset if an adition was made to the stack pointer
 		//unaffected otherwise
 		flags->Zero = 0;
 
 		//The carry and half carry seem to be based on the lower byte of SP, when adding val2 as unsigned
-		flags->HCarry = (((*val1 & 0x000f) + ((unsigned char)*val2 & 0x0f)) & 0x10)?1:0;
-		flags->Carry = (((*val1 & 0x00ff) + ((unsigned char)*val2 & 0xff)) & 0x100)?1:0;
+		flags->HCarry = (((val1 & 0x000f) + ((unsigned char)val2 & 0x0f)) & 0x10)?1:0;
+		flags->Carry = (((val1 & 0x00ff) + ((unsigned char)val2 & 0xff)) & 0x100)?1:0;
 
-		result = *val1 + *val2;
+		result = val1 + val2;
 	}
 	else
 	{
-		unsigned short* val2 = (unsigned short*)value2;
+		unsigned short val2 = get_16bitval(value2, GB);
 
-		result = *val1 + *val2;
+		result = val1 + val2;
 
-		flags->HCarry = (((*val1 & 0x0fff) + (*val2 &0x0fff)) & 0x1000)?1:0;
+		flags->HCarry = (((val1 & 0x0fff) + (val2 &0x0fff)) & 0x1000)?1:0;
 		flags->Carry = (result & 0x10000)?1:0;
 	}
 
 	flags->Subtract = 0;
 	
-	*val1 = result;
+	set_16bitval(value1, result, GB);
 
 	addCycleCount(GB, 2);
 }
@@ -252,20 +256,20 @@ void OP_ADD16(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_ADD8(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB)); 
-	unsigned char* val1 = (unsigned char*)value1;
-	unsigned char* val2 = (unsigned char*)value2;
+	unsigned char val1 = get_8bitval(value1, GB);
+	unsigned char val2 = get_8bitval(value2, GB);
 
-	unsigned short result = *val1 + *val2;
+	unsigned short result = val1 + val2;
 
 	//check if the first byte of the result is zero
 	flags->Zero = (result & 0xff)? 0:1;
 	flags->Subtract = 0;
 	//check if the low nibbles added together cause an overflow to bit 4
-	flags->HCarry = (((*val1 & 0xf) + (*val2 & 0xf)) & 0x10)? 1:0;
+	flags->HCarry = (((val1 & 0xf) + (val2 & 0xf)) & 0x10)? 1:0;
 	//check if the result rolled over into the second byte
 	flags->Carry = (result & 0x0100)? 1:0;
 
-	*val1 = result;
+	set_8bitval(value1, result, GB);
 
 	addCycleCount(GB, 1);
 }
@@ -274,17 +278,17 @@ void OP_ADD8(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_AND(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
-	unsigned char* reg1 = (unsigned char*)value1;
-	unsigned char* reg2 = (unsigned char*)value2;
+	unsigned char reg1 = get_8bitval(value1, GB);
+	unsigned char reg2 = get_8bitval(value2, GB);
 
-	unsigned char result = *reg1 & *reg2;
+	unsigned char result = reg1 & reg2;
 
 	flags->Zero = result?0:1;
 	flags->Subtract = 0;
 	flags->HCarry = 1;
 	flags->Carry = 0;
 
-	*reg1 = result;
+	set_8bitval(value1, result, GB);
 
 	addCycleCount(GB, 1);
 }
@@ -292,10 +296,10 @@ void OP_AND(void *value1, void *value2, GameBoy_Instance* GB)
 //Push return address to stack, and jump to value1
 void OP_CALL(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	unsigned short callAddress = *(unsigned short*)value1;
+	unsigned short callAddress = get_16bitval(value1, GB);
 	unsigned short returnValue = gameboy_getCPU(GB)->PC;
 
-	PUSH_Value(returnValue, gameboy_getCPU(GB), gameboy_getRAM(GB));
+	PUSH_Value(returnValue, GB);
 
 	gameboy_getCPU(GB)->PC = callAddress;
 	
@@ -379,13 +383,13 @@ void OP_CCF(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_CP(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
-	unsigned char* val1 = (unsigned char*)value1;
-	unsigned char* val2 = (unsigned char*)value2;
+	unsigned char val1 = get_8bitval(value1, GB);
+	unsigned char val2 = get_8bitval(value2, GB);
 
-	flags->Zero = *val1 == *val2;
+	flags->Zero = val1 == val2;
 	flags->Subtract = 1;
-	flags->HCarry = ((*val1 & 0x0f) < (*val2 & 0x0f));
-	flags->Carry = (*val1 < *val2);
+	flags->HCarry = ((val1 & 0x0f) < (val2 & 0x0f));
+	flags->Carry = (val1 < val2);
 
 	addCycleCount(GB, 1);
 }
@@ -454,14 +458,16 @@ void OP_DEC16(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_DEC8(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
-	unsigned char* val1 = (unsigned char*)value1;
+	unsigned char val = get_8bitval(value1, GB);
 
-	(*val1)--;
+	val--;
 
-	flags->Zero = *val1?0:1;
+	flags->Zero = val?0:1;
 	flags->Subtract = 1;
 	//if a borrow happend from the second nibble, then the fisrt nibble will be all ones
-	flags->HCarry = (*val1 & 0x0f) == 0xf;
+	flags->HCarry = (val & 0x0f) == 0xf;
+
+	set_8bitval(value1, val, GB);
 
 	//if (HL) was used then this opperation costs one extra cycle
 	if(value1 == gameboy_getRAM(GB) + gameboy_getCPU(GB)->HL)
@@ -516,14 +522,16 @@ void OP_INC16(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_INC8(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
-	unsigned char* val1 = (unsigned char*)value1;
+	unsigned char val = get_8bitval(value1, GB);
 
-	(*val1)++;
+	val++;
 
-	flags->Zero = *val1?0:1;
+	flags->Zero = val?0:1;
 	flags->Subtract = 0;
 	//if a half carry happened, then the last nibble will all be zeroes
-	flags->HCarry = (*val1 & 0x0f)?0:1;
+	flags->HCarry = (val & 0x0f)?0:1;
+
+	set_8bitval(value1, val, GB);
 
 	//if (HL) was used then this opperation costs one extra cycle
 	if(value1 == gameboy_getRAM(GB) + gameboy_getCPU(GB)->HL)
@@ -540,7 +548,7 @@ void OP_INC8(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_JP(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	//I have to check the two bytes are the right way around
-	gameboy_getCPU(GB)->PC = *(unsigned short*)value1;
+	gameboy_getCPU(GB)->PC = get_16bitval(value1, GB);
 
 	if(value1 != &(gameboy_getCPU(GB)->HL))
 	{
@@ -553,7 +561,7 @@ void OP_JP_C(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	if(gameboy_getCPU(GB)->FLAGS.Carry)
 	{
-		gameboy_getCPU(GB)->PC = *(unsigned short*)value1;
+		gameboy_getCPU(GB)->PC = get_16bitval(value1, GB);
 		addCycleCount(GB, 3);
 	}
 	else
@@ -567,7 +575,7 @@ void OP_JP_NC(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	if(!gameboy_getCPU(GB)->FLAGS.Carry)
 	{
-		gameboy_getCPU(GB)->PC = *(unsigned short*)value1;
+		gameboy_getCPU(GB)->PC = get_16bitval(value1, GB);
 		addCycleCount(GB, 3);
 	}
 	else
@@ -581,7 +589,7 @@ void OP_JP_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	if(!gameboy_getCPU(GB)->FLAGS.Zero)
 	{
-		gameboy_getCPU(GB)->PC = *(unsigned short*)value1;
+		gameboy_getCPU(GB)->PC = get_16bitval(value1, GB);
 		addCycleCount(GB, 3);
 	}
 	else
@@ -595,7 +603,7 @@ void OP_JP_Z(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	if(gameboy_getCPU(GB)->FLAGS.Zero)
 	{
-		gameboy_getCPU(GB)->PC = *(unsigned short*)value1;
+		gameboy_getCPU(GB)->PC = get_16bitval(value1, GB);
 		addCycleCount(GB, 3);
 	}
 	else
@@ -607,7 +615,7 @@ void OP_JP_Z(void *value1, void *value2, GameBoy_Instance* GB)
 //Jump to PC + value1
 void OP_JR(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + *(char*)value1;
+	gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + (signed char)get_8bitval(value1, GB);
 	addCycleCount(GB, 3);
 }
 
@@ -616,7 +624,7 @@ void OP_JR_C(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	if(gameboy_getCPU(GB)->FLAGS.Carry)
 	{
-		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + *(char*)value1;
+		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + (signed char)get_8bitval(value1, GB);
 		addCycleCount(GB, 3);
 	}
 	else
@@ -630,7 +638,7 @@ void OP_JR_NC(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	if(!gameboy_getCPU(GB)->FLAGS.Carry)
 	{
-		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + *(char*)value1;
+		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + (signed char)get_8bitval(value1, GB);
 		addCycleCount(GB, 3);
 	}
 	else
@@ -644,7 +652,7 @@ void OP_JR_NZ(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	if(!gameboy_getCPU(GB)->FLAGS.Zero)
 	{
-		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + *(char*)value1;
+		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + (signed char)get_8bitval(value1, GB);
 		addCycleCount(GB, 3);
 	}
 	else
@@ -658,7 +666,7 @@ void OP_JR_Z(void *value1, void *value2, GameBoy_Instance* GB)
 {	
 	if(gameboy_getCPU(GB)->FLAGS.Zero)
 	{
-		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + *(char*)value1;
+		gameboy_getCPU(GB)->PC = gameboy_getCPU(GB)->PC + (signed char)get_8bitval(value1, GB);
 		addCycleCount(GB, 3);
 	}
 	else
@@ -670,10 +678,9 @@ void OP_JR_Z(void *value1, void *value2, GameBoy_Instance* GB)
 //Load Value2, into Value1
 void OP_LD16(void *value1, void *value2, GameBoy_Instance* GB)
 { 
-	unsigned short* val1 = (unsigned short*)value1;
-	unsigned short* val2 = (unsigned short*)value2;
+	unsigned short val2 = get_16bitval(value2, GB);
 
-	*val1 = *val2;
+	set_16bitval(value1, val2, GB);
 
 	addCycleCount(GB, 2);
 }
@@ -681,31 +688,30 @@ void OP_LD16(void *value1, void *value2, GameBoy_Instance* GB)
 //Load Value2, into Value1
 void OP_LD8(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	unsigned char* val1 = (unsigned char*)value1;
-	unsigned char* val2 = (unsigned char*)value2;
+	unsigned char* writeloc = (unsigned char*)value1;
+	unsigned char value = *(unsigned char*)value2;
+	set_8bitval(writeloc, value, GB);
+
 	addCycleCount(GB, 1);
-	
-	writeOperation(val1, val2, GB);
 }
 
 //Load SP + r8 into HL
 void OP_LDHL(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
-	unsigned short* HL = (unsigned short*)value1;
-	unsigned short* SP = (unsigned short*)value2;
+	unsigned short SP = get_16bitval(value2, GB);
 
 	signed char relativeValue = *(signed char*)Read_PC8(GB);
-	unsigned short result = *SP + relativeValue;
+	unsigned short result = SP + relativeValue;
 
 	flags->Zero = 0;
 	flags->Subtract = 0;
 	//check if the low nibbles added together cause an overflow to bit 4
-	flags->HCarry = (((*SP & 0xf) + ((unsigned char)relativeValue & 0xf)) & 0x10)? 1:0;
+	flags->HCarry = (((SP & 0xf) + ((unsigned char)relativeValue & 0xf)) & 0x10)? 1:0;
 	//check if the low and high nibbles added together cause an overflow to bit 7
-	flags->Carry = (((*SP & 0xff) + ((unsigned char)relativeValue & 0xff)) & 0x100)? 1:0;
+	flags->Carry = (((SP & 0xff) + ((unsigned char)relativeValue & 0xff)) & 0x100)? 1:0;
 
-	*HL = result;
+	set_16bitval(value1, result, GB);
 
 	addCycleCount(GB, 3);
 }
@@ -721,17 +727,17 @@ void OP_NOP(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_OR(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
-	unsigned char* reg1 = (unsigned char*)value1;
-	unsigned char* reg2 = (unsigned char*)value2;
+	unsigned char reg1 = get_8bitval(value1, GB);
+	unsigned char reg2 = get_8bitval(value2, GB);
 
-	unsigned char result = *reg1 | *reg2;
+	unsigned char result = reg1 | reg2;
 
 	flags->Zero = result?0:1;
 	flags->Subtract = 0;
 	flags->HCarry = 0;
 	flags->Carry = 0;
 
-	*reg1 = result;
+	set_8bitval(value1, result, GB);
 
 	addCycleCount(GB, 1);
 }
@@ -739,13 +745,13 @@ void OP_OR(void *value1, void *value2, GameBoy_Instance* GB)
 //Pop two bytes off the stack into a register pair
 void OP_POP(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	unsigned short* Register = (unsigned short*)value1;
+	unsigned short Pop_val = POP_Value(GB);
 
-	*Register = POP_Value(gameboy_getCPU(GB), gameboy_getRAM(GB));
+	set_16bitval(value1, Pop_val, GB);
 
 	//there is a chance the empty bit fields of the flag register
 	//get filled when popping a value into AF
-	if(Register == &(gameboy_getCPU(GB)->AF))
+	if((unsigned short*)value1 == &(gameboy_getCPU(GB)->AF))
 	{
 		gameboy_getCPU(GB)->FLAGS.null = 0;
 	}
@@ -756,9 +762,9 @@ void OP_POP(void *value1, void *value2, GameBoy_Instance* GB)
 //Push register pair nn onto the stack
 void OP_PUSH(void *value1, void *value2, GameBoy_Instance* GB)
 { 
-	unsigned short* Register = (unsigned short*)value1;
+	unsigned short Push_val = get_16bitval(value1, GB);
 
-	PUSH_Value(*Register, gameboy_getCPU(GB), gameboy_getRAM(GB));
+	PUSH_Value(Push_val, GB);
 
 	addCycleCount(GB, 4);
 }
@@ -766,7 +772,7 @@ void OP_PUSH(void *value1, void *value2, GameBoy_Instance* GB)
 //pop the return value from the stack and return to said value
 void OP_RET(void *value1, void *value2, GameBoy_Instance* GB)
 {
-	gameboy_getCPU(GB)->PC = POP_Value(gameboy_getCPU(GB), gameboy_getRAM(GB));
+	gameboy_getCPU(GB)->PC = POP_Value(GB);
 	addCycleCount(GB, 2);
 }
 
@@ -908,7 +914,7 @@ void OP_RST(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	unsigned short resetVector = (unsigned char*)value1 - gameboy_getRAM(GB);
 
-	PUSH_Value(gameboy_getCPU(GB)->PC, gameboy_getCPU(GB), gameboy_getRAM(GB));
+	PUSH_Value(gameboy_getCPU(GB)->PC, GB);
 
 	gameboy_getCPU(GB)->PC = resetVector;
 }
@@ -917,22 +923,22 @@ void OP_RST(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_SBC(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
-	unsigned char* val1 = (unsigned char*)value1;
-	unsigned char* val2 = (unsigned char*)value2;
+	unsigned char val1 = get_8bitval(value1, GB);
+	unsigned char val2 = get_8bitval(value2, GB);
 	unsigned char carry = flags->Carry?1:0;
 
 	//reduce the result by 1 if the carry flag isn't set
-	unsigned short result = *val1 - (*val2 + carry);
+	unsigned short result = val1 - (val2 + carry);
 
 	//check if the first byte of the result is zero
 	flags->Zero = (result & 0xff)? 0:1;
 	flags->Subtract = 1;
 	//check a carry took place from the second nibble to the first
-	flags->HCarry = ((*val1 & 0x0f) < ((*val2 & 0x0f) + carry));
+	flags->HCarry = ((val1 & 0x0f) < ((val2 & 0x0f) + carry));
 	//check if a carry took place into the second nibble
-	flags->Carry = (*val1 < (*val2 + carry));
+	flags->Carry = (val1 < (val2 + carry));
 
-	*val1 = result;
+	set_8bitval(value1, result, GB);
 
 	addCycleCount(GB, 1);
 }
@@ -963,20 +969,20 @@ void OP_STOP(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_SUB(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
-	unsigned char* val1 = (unsigned char*)value1;
-	unsigned char* val2 = (unsigned char*)value2;
+	unsigned char val1 = get_8bitval(value1, GB);
+	unsigned char val2 = get_8bitval(value2, GB);
 
-	unsigned short result = *val1 - *val2;
+	unsigned short result = val1 - val2;
 
 	//check if the first byte of the result is zero
 	flags->Zero = (result & 0xff)? 0:1;
 	flags->Subtract = 1;
 	//check a carry took place from the second nibble to the first
-	flags->HCarry = ((*val1 & 0x0f) < (*val2 & 0x0f));
+	flags->HCarry = ((val1 & 0x0f) < (val2 & 0x0f));
 	//check if a carry took place into the second nibble
-	flags->Carry = (*val1 < *val2);
+	flags->Carry = (val1 < val2);
 
-	*val1 = result;
+	set_8bitval(value1, result, GB);
 
 	addCycleCount(GB, 1);
 }
@@ -985,17 +991,17 @@ void OP_SUB(void *value1, void *value2, GameBoy_Instance* GB)
 void OP_XOR(void *value1, void *value2, GameBoy_Instance* GB)
 {
 	CPU_flags* flags = getFlags(gameboy_getCPU(GB));
-	unsigned char* reg1 = (unsigned char*)value1;
-	unsigned char* reg2 = (unsigned char*)value2;
+	unsigned char reg1 = get_8bitval(value1, GB);
+	unsigned char reg2 = get_8bitval(value2, GB);
 
-	unsigned char result = *reg1 ^ *reg2;
+	unsigned char result = reg1 ^ reg2;
 
 	flags->Zero = result?0:1;
 	flags->Subtract = 0;
 	flags->HCarry = 0;
 	flags->Carry = 0;
 
-	*reg1 = result;
+	set_8bitval(value1, result, GB);
 
 	addCycleCount(GB, 1);
 }

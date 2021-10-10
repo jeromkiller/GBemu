@@ -3,6 +3,7 @@
 //includes
 #include "RAM.h"
 #include "sharedData.h"
+#include "GameBoy.h"
 
 //defines
 //Macro's for ram locations
@@ -14,9 +15,6 @@
 #define SERIAL_CONTROL_CLOCKTYPE_BIT (0x01)
 #define TIMER_TAC_ENABLE_BIT (0x04)
 #define TIMER_TAC_CLOCKSELECT_BITS (0x03)
-
-//global var
-volatile static unsigned short IO_TIMER_CLOCKSELECT[4] = {1024, 16, 64, 256};
 
 //main function
 //check if there is data to be output on the serial bus
@@ -30,3 +28,7 @@ void handle_newinput(RAM* RAM_ptr, player_input_data* old_data, player_input* ne
 
 //update input
 void write_to_input(RAM* RAM_ptr, player_input_data* input, unsigned char value);
+
+//writes to timer registers
+void write_to_DIV(RAM* RAM_ptr, TimerData* Timer_ptr);
+void write_to_TAC(unsigned char Value, TimerData* Timer_ptr);
