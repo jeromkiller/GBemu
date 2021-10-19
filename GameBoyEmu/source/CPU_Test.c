@@ -40,7 +40,7 @@ int main(int argc, char *argv[] )
 	TimerData* Timer = gameboy_getTimer(GameBoy);
 	while(Timer->CycleNumber < 50000000)	//the cpu spools in the interrupt test, so i can't use that as a check anymore :P
 	{
-		check_interrupts(gameboy_getInterruptRegs(GameBoy), gameboy_getCPU(GameBoy), gameboy_getRAM(GameBoy));
+		check_interrupts(gameboy_getInterruptRegs(GameBoy), GameBoy);
 		performNextOpcode(GameBoy);
 		perform_serialOperation(gameboy_getRAM(GameBoy));
 		perform_timerOperation(gameboy_getRAM(GameBoy), Timer->SystemTimer, &(Timer->LastSystemTimer), &(Timer->TimerStep));

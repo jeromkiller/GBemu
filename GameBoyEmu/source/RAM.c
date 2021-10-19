@@ -7,9 +7,11 @@
 
 //forward declarations
 //check if a certain value is in range of rangeStart and rangeEnd
-static unsigned char inRange(unsigned short writeLocation, unsigned short RangeStart, unsigned short RangeEnd);
+static unsigned char inRange(unsigned short location, unsigned short RangeStart, unsigned short RangeEnd);
 //check if a pointer value is in range of rangeStart and rangeEnd
-static unsigned char inPointerRange(void* writeLocation, void* RangeStart, void* RangeEnd);
+static unsigned char inPointerRange(void* location, void* RangeStart, void* RangeEnd);
+//check if a byte read is in ram range
+static unsigned char inRamRange(void* location, RAM* RAM_ptr);
 
 //function implementations
 
@@ -73,14 +75,38 @@ RAM* RAM_dispose(RAM* RAM_ptr)
 //get 8bit val
 unsigned char get_8bitval(void* value, GameBoy_Instance* GB)
 {
+	RAM* ram = gameboy_getRAM(GB);
+	unsigned char* value_ptr = (unsigned char*)value;
+	if(inRamRange(value, ram))
+	{
+		unsigned short readLocation = 0;
+		if((unsigned char*)value > ram)
+		{
+			readLocation = (unsigned short)(value_ptr - ram);
+		}
+		else
+		{
+			readLocation = (unsigned short)(ram - value_ptr);
+		}
+
+		//if DMA is being performed, then low ram cannot be read from
+		if(get_DMArunning(gameboy_getDMAInfo(GB)))
+		{
+			if(inRange(readLocation, RAM_LOCATION_LO_RAM_START, RAM_LOCATION_LO_RAM_END))
+			{
+				return 0xFF;
+			}
+		}
+
+	}
+
 	return *(unsigned char*)value;
 }
 
 //get 16bit val
 unsigned short get_16bitval(void* value, GameBoy_Instance* GB)
 {
-	unsigned char* byte = (unsigned char*)value;
-	return (*byte | (*(byte + 1) << 8));
+	return (get_8bitval(value, GB) | (get_8bitval(value + 1, GB) << 8));
 }
 
 //set 16bit val
@@ -96,7 +122,7 @@ void set_8bitval(unsigned char* WriteLoc, unsigned char Val, GameBoy_Instance* G
 {
 	//check if the write is done to a special part of memory
 	RAM* ram = gameboy_getRAM(GB);
-	if(inPointerRange(WriteLoc, ram + RAM_START, ram + RAM_END))
+	if(inRamRange(WriteLoc, ram))
 	{
 		unsigned short writeLocation = 0;
 		if(WriteLoc > ram)
@@ -106,6 +132,15 @@ void set_8bitval(unsigned char* WriteLoc, unsigned char Val, GameBoy_Instance* G
 		else
 		{
 			writeLocation = (unsigned short)(ram - WriteLoc);
+		}
+
+		//if DMA is being performed, then low ram cannot be read from
+		if(get_DMArunning(gameboy_getDMAInfo(GB)))
+		{
+			if(inRange(writeLocation, RAM_LOCATION_LO_RAM_START, RAM_LOCATION_LO_RAM_END))
+			{
+				return;
+			}
 		}
 		
 		//check if the write is to a special address
@@ -120,6 +155,12 @@ void set_8bitval(unsigned char* WriteLoc, unsigned char Val, GameBoy_Instance* G
 			{
 				//reset the systemTimer, this resets div and affects the timer
 				write_to_DIV(ram, gameboy_getTimer(GB));
+				return;
+			}
+			case RAM_LOCATION_GRAPHICS_DMA:
+			{
+				//start a dma transfer
+				start_DMAtransfer(gameboy_getDMAInfo(GB), gameboy_getRAM(GB), Val);
 				return;
 			}
 			case RAM_LOCATION_IO_TAC:
@@ -157,12 +198,18 @@ void set_8bitval(unsigned char* WriteLoc, unsigned char Val, GameBoy_Instance* G
 	*WriteLoc = Val;
 }
 
-static unsigned char inRange(unsigned short writeLocation, unsigned short RangeStart, unsigned short RangeEnd)
+static unsigned char inRange(unsigned short location, unsigned short RangeStart, unsigned short RangeEnd)
 {
-	return ((writeLocation >= RangeStart) && (writeLocation <= RangeEnd));
+	return ((location >= RangeStart) && (location <= RangeEnd));
 }
 
-static unsigned char inPointerRange(void* writeLocation, void* RangeStart, void* RangeEnd)
+static unsigned char inPointerRange(void* location, void* RangeStart, void* RangeEnd)
 {
-	return ((writeLocation >= RangeStart) && (writeLocation <= RangeEnd));
+	return ((location >= RangeStart) && (location <= RangeEnd));
+}
+
+//check if a byte read is in ram range
+static unsigned char inRamRange(void* location, RAM* RAM_ptr)
+{
+	return inPointerRange(location, RAM_ptr + RAM_START, RAM_ptr + RAM_END);
 }

@@ -15,6 +15,11 @@
 #define LINE_VBLANK_END 153
 
 #define NUM_OAM_ENTRIES 40
+#define NUM_SPRITE_TABLE_ENTRIES 10
+
+#define SPRITE_WIDTH 8
+#define SPRITE_HEIGHT 8
+#define SPRITE_FULLHEIGHT 16
 
 #define SCREENMODE_HBLANK 0
 #define SCREENMODE_VBLANK 1
@@ -59,7 +64,7 @@ typedef struct LCDC_t
 
 typedef struct OAM_Attributes_t
 {
-	unsigned char pallete_number_GBC : 2;
+	unsigned char pallete_number_GBC : 3;
 	unsigned char vram_bank : 1;
 	unsigned char pallete_number_DMG : 1;
 	unsigned char X_flip : 1;
@@ -88,6 +93,7 @@ struct screenData_t
 	unsigned char scrollY;
 	unsigned char windowX;
 	unsigned char windowY;
+	unsigned char windowLineNumber;
 
 	OAM_Entry* sprites[10];
 
@@ -102,6 +108,13 @@ typedef struct rgbColor_t
 	unsigned char g;
 	unsigned char b;
 }rgbColor;
+
+typedef enum paletteID_t
+{
+	BACKGROUND_PALLETE = 0,
+	OBJECT_PALETTE_0,
+	OBJECT_PALETTE_1
+}paletteID;
 
 //local functions
 //get the tile id from the tile map based on current scanning possition
@@ -132,10 +145,26 @@ static unsigned char getPalette(tile *tile, unsigned char pixelX, unsigned char 
 }
 
 //gets the right pixel color for the color value of the background
-static rgbColor getBackgroundColorVal(RAM* RAM_ptr, unsigned char colorVal)
+static rgbColor getColorVal(RAM* RAM_ptr, unsigned char colorVal, paletteID palID)
 {
 	unsigned char val;
-	unsigned char paletteData = *(RAM_ptr + RAM_LOCATION_GRAPHICS_BGP);
+
+	unsigned short paletteLocation = 0;
+
+	switch(palID)
+	{
+		case BACKGROUND_PALLETE:
+			paletteLocation = RAM_LOCATION_GRAPHICS_BGP;
+			break;
+		case OBJECT_PALETTE_0:
+			paletteLocation = RAM_LOCATION_GRAPHICS_OBP0;
+			break;
+		case OBJECT_PALETTE_1:
+			paletteLocation = RAM_LOCATION_GRAPHICS_OBP1;
+			break;
+	}
+
+	unsigned char paletteData = *(RAM_ptr + paletteLocation);
 
 	switch (colorVal & 0x03)
 	{
@@ -184,7 +213,7 @@ static void putPixel(GdkPixbuf* buffer, unsigned char x, unsigned char y, rgbCol
 
 //perform oam search
 //returns amount of unhandled dots
-static void oamSearch(screenData* screen_ptr, RAM* RAM_ptr, int dots)
+static void oamSearch(screenData* screen_ptr, RAM* RAM_ptr, int dots, unsigned char DMA_running)
 {
 	//set parameters for this scanline
 	screen_ptr->scrollY = *(RAM_ptr + RAM_LOCATION_GRAPHICS_SCY);
@@ -193,23 +222,32 @@ static void oamSearch(screenData* screen_ptr, RAM* RAM_ptr, int dots)
 	screen_ptr->windowY = *(RAM_ptr + RAM_LOCATION_GRAPHICS_WINDOW_Y);
 	screen_ptr->windowX = *(RAM_ptr + RAM_LOCATION_GRAPHICS_WINDOW_X);
 
+	//clear the oam table
+	screen_ptr->sprites[0] = NULL;
+
+	//if DMA is being performed, we cannot read OAM
+	if(DMA_running)
+	{
+		return;
+	}
+
 	//run over the oam table and store any oam entries for this line
 	LCDC* LCDControl = (LCDC*)(RAM_ptr + RAM_LOCATION_GRAPHICS_LCDC);
-	unsigned char spriteHeight = 8 * (LCDControl->OBJ_size + 1);
+	unsigned char realSpriteHeight = LCDControl->OBJ_size ? SPRITE_FULLHEIGHT : SPRITE_HEIGHT;
 
-	OAM_Entry* OAM_Table = (OAM_Entry*)(RAM_ptr + RAM_LOCATION_VIDEO_OAM_START);
+	OAM_Entry* OAM_Table = (OAM_Entry*)(RAM_ptr + RAM_LOCATION_OAM_START);
 	unsigned char OAM_List_entry = 0;
 	for(unsigned char i = 0; i < NUM_OAM_ENTRIES; i++)
 	{
 		//check if the sprite intersects the line we are currently drawing
-		if((screen_ptr->lineNumber >= OAM_Table[i].Y_pos) &&
-		(screen_ptr->lineNumber <= (OAM_Table[i].Y_pos + spriteHeight)))
+		if((screen_ptr->lineNumber >= (OAM_Table[i].Y_pos - SPRITE_FULLHEIGHT)) &&
+		(screen_ptr->lineNumber < OAM_Table[i].Y_pos - SPRITE_FULLHEIGHT + realSpriteHeight))
 		{
 			screen_ptr->sprites[OAM_List_entry] = &(OAM_Table[i]);
 			OAM_List_entry++;
 			
 			//check if our oam table is full
-			if(OAM_List_entry == 10)
+			if(OAM_List_entry == NUM_SPRITE_TABLE_ENTRIES)
 			{
 				return;
 			}
@@ -269,7 +307,7 @@ screenData* screenData_dispose(screenData* screenData)
 	return NULL;
 }
 
-void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb, int newCycles)
+void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb, int newCycles, unsigned char DMA_running)
 {
 	int dotsLeft = newCycles * DOTS_PER_CLOCK_CYCLE;
 	LCDC* LCDcontrol = (LCDC*)(RAM_ptr + RAM_LOCATION_GRAPHICS_LCDC);
@@ -295,6 +333,12 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 				{
 					//check how many dots we overshot
 					dotsLeft = DOTS_PER_LINE - newDotCounter;
+
+					//was the window vissible on this line
+					if(LCDcontrol->BG_Window_enable && (screen_ptr->lineNumber >= screen_ptr->windowY))
+					{
+						screen_ptr->windowLineNumber++;
+					}
 
 					//start at the next line
 					newDotCounter = 0;
@@ -372,6 +416,7 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 					{
 						//restart from the start of the frame
 						screen_ptr->lineNumber = 0;
+						screen_ptr->windowLineNumber = 0;
 						performSleep(screen_ptr->frameTimer);
 						LCDstatus->mode = SCREENMODE_OAM_SEARCH;
 						if(LCDstatus->OAM_Interrupt_enable)
@@ -391,7 +436,7 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 			}
 			case SCREENMODE_OAM_SEARCH:
 			{
-				oamSearch(screen_ptr, RAM_ptr, dotsLeft);
+				oamSearch(screen_ptr, RAM_ptr, dotsLeft, DMA_running);
 				
 				int newDotCounter = screen_ptr->dotCounter_line + dotsLeft;
 				
@@ -420,8 +465,9 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 				unsigned short windowTileMapLocation = LCDcontrol->Window_tile_map ? 0x9C00 : 0x9800;
 				unsigned char screenX = screen_ptr->rowNumber;
 				unsigned char screenY = screen_ptr->lineNumber;
-				unsigned char windowX = screen_ptr->windowX - 7;
+				unsigned char windowX = (*(RAM_ptr + RAM_LOCATION_GRAPHICS_SCX) & 0xF8) - 7;
 				unsigned char windowY = screen_ptr->windowY;
+				unsigned char windowLineNumber = screen_ptr->windowLineNumber;
 				unsigned char viewportX = screen_ptr->scrollX;
 				unsigned char viewportY = screen_ptr->scrollY;
 
@@ -433,7 +479,7 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 					if(LCDcontrol->Window_enable && (screenX >= windowX) && (screenY >= windowY))
 					{
 						//get the tile id for the window
-						unsigned char tileId = getTileId(RAM_ptr + bgTileMapLocation, screenX - windowX, screenY - windowY);
+						unsigned char tileId = getTileId(RAM_ptr + bgTileMapLocation, screenX - windowX, windowLineNumber);
 						if(!bgTileMapAdressingMode)
 						{
 							tileId += 128;
@@ -455,8 +501,76 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 						pixPalette = getPalette(currentTile, (screenX + viewportX) % 8, (screenY + viewportY) % 8);
 					}
 
-					//find info for the pixel, and draw it to the framebuffer
-					rgbColor pixColor = getBackgroundColorVal(RAM_ptr, pixPalette);
+					//find info for the pixel, might be overwritten by sprites
+					rgbColor pixColor = getColorVal(RAM_ptr, pixPalette, BACKGROUND_PALLETE);
+
+					if(LCDcontrol->OBJ_enable)
+					{
+						//is there a sprite on this pixel?
+						for(unsigned char slot = 0; slot < NUM_SPRITE_TABLE_ENTRIES; slot++)
+						{
+							unsigned char spritePixPalette = 0;
+							unsigned char spriteHeight = LCDcontrol->OBJ_size ? (SPRITE_HEIGHT * 2) : SPRITE_HEIGHT;
+							OAM_Entry* sprite = screen_ptr->sprites[slot];
+
+							//was this at the end of the list?
+							if(sprite == NULL)
+							{
+								break;
+							}
+
+							//the sprite is on this line, we figured that out during OAM search
+							//but is the sprite on this row?
+							if((screenX >= (sprite->X_pos - SPRITE_WIDTH) && screenX < (sprite->X_pos)))
+							{
+								//check if this sprite is behind the background
+								if(sprite->Attributes.BG_priority && pixPalette)
+								{
+									break;
+								}
+
+								//get the tile for this sprite, sprites tile data is always at 0x8000
+								tile* spriteTile = getTileFromId(RAM_ptr + 0x8000, sprite->TileIndex);
+								unsigned char spriteXpix = screenX - (sprite->X_pos - 8);
+								unsigned char spriteYpix = screenY - (sprite->Y_pos - 16);
+
+								//mirror the sprite if neccisery
+								if(sprite->Attributes.X_flip)
+								{
+									char mirrorPivot = spriteXpix - 4;
+									mirrorPivot = (-mirrorPivot) + 3;
+									spriteXpix = mirrorPivot;
+								}
+
+								if(sprite->Attributes.Y_flip)
+								{
+									unsigned char halfSprite = (spriteHeight / 2);
+									char mirrorPivot = spriteYpix - halfSprite;
+									mirrorPivot = (-mirrorPivot) + (halfSprite - 1);
+									spriteYpix = mirrorPivot;
+								}
+
+								//now we can finaly check what pallete the sprite has
+								spritePixPalette = getPalette(spriteTile, spriteXpix, spriteYpix);
+								
+								//if its not transparent, draw the pixel for this sprite
+								//if it is transparent, we should check the next sprite
+								if(spritePixPalette > 0)
+								{
+									if(sprite->Attributes.pallete_number_DMG)
+									{
+										pixColor = getColorVal(RAM_ptr, spritePixPalette, OBJECT_PALETTE_1);
+									}
+									else
+									{
+										pixColor = getColorVal(RAM_ptr, spritePixPalette, OBJECT_PALETTE_0);
+									}
+								}
+							}
+						}
+					}
+
+					//write the pixel to the pixbuf
 					putPixel(screen_ptr->pixbuf[screen_ptr->inactiveBuffer], screenX, screenY, pixColor);
 
 					//move to the next pixel

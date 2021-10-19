@@ -49,9 +49,10 @@ static int run(shared_Thread_Blocks* threadData)
 		perform_serialOperation(gameboy_getRAM(GameBoy));
 		TimerData* Timer = gameboy_getTimer(GameBoy);
 		perform_timerOperation(gameboy_getRAM(GameBoy), Timer->SystemTimer, &(Timer->LastSystemTimer), &(Timer->TimerStep));
-		fflush(stdout);
+		perform_LCD_operation(gameboy_getScreenData(GameBoy), gameboy_getRAM(GameBoy), gameBoy_getFramebuffer(GameBoy), Timer->CycleDelta, get_DMArunning(gameboy_getDMAInfo(GameBoy)));
+		perform_DMAtick(gameboy_getDMAInfo(GameBoy), Timer->CycleDelta);
 
-		perform_LCD_operation(gameboy_getScreenData(GameBoy), gameboy_getRAM(GameBoy), gameBoy_getFramebuffer(GameBoy), Timer->CycleDelta);
+		fflush(stdout);
 	}
 
 ///////////////////////////////////////////////////////////////////////

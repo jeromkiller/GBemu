@@ -11,4 +11,4 @@ screenData* screenData_init();
 screenData* screenData_dispose(screenData* screenData);
 
 //put some pixels on the screen
-void perform_LCD_operation(screenData* screenData, RAM* RAM_ptr, framebuffer* fb, int newCycles);
+void perform_LCD_operation(screenData* screenData, RAM* RAM_ptr, framebuffer* fb, int newCycles, unsigned char DMA_running);

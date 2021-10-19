@@ -8,6 +8,7 @@
 #include "RomMapper.h"
 #include "sharedData.h"
 #include "Graphics.h"
+#include "DMA.h"
 
 //structures
 typedef struct TimerData_t
@@ -36,4 +37,4 @@ Memory_Mapper* gameboy_getMemMapper(GameBoy_Instance* GB);
 screenData* gameboy_getScreenData(GameBoy_Instance* GB);
 TimerData* gameboy_getTimer(GameBoy_Instance* GB);
 player_input_data* gameboy_getOldInputData(GameBoy_Instance* GB);
-
+DMA_info* gameboy_getDMAInfo(GameBoy_Instance* GB);

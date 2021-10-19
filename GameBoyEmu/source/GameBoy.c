@@ -20,6 +20,7 @@ struct GameBoy_Instance_t
 	Interrupt_registers* Interrupt_ref;
 	Memory_Mapper* MAPPER_ref;
 	screenData* graphics_ref;
+	DMA_info* DMA_ref;
 
 	//data
 	TimerData Timer;
@@ -58,6 +59,7 @@ GameBoy_Instance* gameBoy_init(shared_Thread_Blocks* sharedBlocks, char* romPath
 	newGameBoy->Interrupt_ref = interruptRegisters_init();
 	newGameBoy->MAPPER_ref = Mapper_init(romPath, newGameBoy->RAM_ref);
 	newGameBoy->graphics_ref = screenData_init();
+	newGameBoy->DMA_ref = DMA_init();
 
 	if(NULL == newGameBoy->MAPPER_ref)
 	{
@@ -77,6 +79,7 @@ GameBoy_Instance* gameBoy_dispose(GameBoy_Instance* GameBoy)
 		GameBoy->RAM_ref = RAM_dispose(GameBoy->RAM_ref);
 		GameBoy->Interrupt_ref = interruptRegisters_dispose(GameBoy->Interrupt_ref);
 		GameBoy->graphics_ref = screenData_dispose(GameBoy->graphics_ref);
+		GameBoy->DMA_ref = DMA_dispose(GameBoy->DMA_ref);
 
 		//then free the gameboy struct itself
 		free(GameBoy);
@@ -134,4 +137,7 @@ player_input_data* gameboy_getOldInputData(GameBoy_Instance* GB)
 	return &(GB->oldInput);
 }
 
-
+DMA_info* gameboy_getDMAInfo(GameBoy_Instance* GB)
+{
+	return GB->DMA_ref;
+}
