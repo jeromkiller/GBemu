@@ -29,15 +29,20 @@ OBJS := $(addprefix $(ODIR)/, $(patsubst %.c, %.o, $(notdir $(SRCS))))
 MAINEXCLUDES:=$(ODIR)/CPU_Test.o
 TESTEXCLUDES:=$(ODIR)/GameBoyEmu.o $(ODIR)/main.o
 
+all: executable
+
+debug: CC += $(DEBUGFLAGS)
+debug: executable
+
 #build .o files
 $(ODIR)/%.o : $(SDIR)/%.c $(HEAD) 
 	@echo building object: $@;
-	@$(CC) -o $@ -c $< $(CFLAGS) $(DEBUGFLAGS)
+	@$(CC) -o $@ -c $< $(CFLAGS)
 
 #build project 
-$(FILENAME) : $(filter-out $(MAINEXCLUDES), $(OBJS))
+executable : $(filter-out $(MAINEXCLUDES), $(OBJS))
 	@echo building executable: $@;
-	@$(CC) -o $@ $^ $(CFLAGS) $(DEBUGFLAGS)
+	@$(CC) -o $(FILENAME) $^ $(CFLAGS)
 
 #before objects can be built, the object folder has to be created
 $(OBJS): | $(ODIR)
@@ -55,7 +60,7 @@ clean :
 #build the version of the program
 $(TESTPROGRAM) : $(filter-out $(TESTEXCLUDES), $(OBJS))
 	@echo building executable: $@;
-	@$(CC) -o $@ $^ $(CFLAGS) $(DEBUGFLAGS)
+	@$(CC) -o $@ $^ $(CFLAGS)
 
 #make tests
 #build and run the tests automaticaly
