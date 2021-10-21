@@ -21,10 +21,10 @@
 #define SPRITE_HEIGHT 8
 #define SPRITE_FULLHEIGHT 16
 
-#define SCREENMODE_HBLANK 0
-#define SCREENMODE_VBLANK 1
-#define SCREENMODE_OAM_SEARCH 2
-#define SCREENMODE_PLACING_PIX 3
+#define SCREENMODE_HBLANK 0b00
+#define SCREENMODE_VBLANK 0b01
+#define SCREENMODE_OAM_SEARCH 0b10
+#define SCREENMODE_PLACING_PIX 0b11
 
 #define USECONDS_PER_FRAME 16742
 
@@ -345,11 +345,21 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 					screen_ptr->lineNumber++;
 					screen_ptr->rowNumber = 0;
 
-					if((LCDstatus->LYC_Interrupt_enable) &&
-					(screen_ptr->lineNumber == screen_ptr->interruptLine))
+					if(screen_ptr->lineNumber == screen_ptr->interruptLine)
 					{
-						interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
-						flags->LCDC = 1;
+						//set the LY Coincidence flag
+						LCDstatus->LYC_Flag = 1;
+
+						if(LCDstatus->LYC_Interrupt_enable)
+						{
+							//set the interrupt flag
+							interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
+							flags->LCDC = 1;
+						}
+					}
+					else
+					{
+						LCDstatus->LYC_Flag = 0;
 					}
 
 					//check if we entered vblank
@@ -359,8 +369,7 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 						interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
 						flags->VBlank = 1;
 
-						if((LCDstatus->LYC_Interrupt_enable) ||
-						(LCDstatus->OAM_Interrupt_enable))
+						if(LCDstatus->VBlank_Interrupt_enable)
 						{
 							flags->LCDC = 1;
 						}
@@ -404,11 +413,20 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 					screen_ptr->lineNumber++;
 					screen_ptr->rowNumber = 0;
 
-					if((LCDstatus->LYC_Interrupt_enable) &&
-					(screen_ptr->lineNumber == screen_ptr->interruptLine))
+					if(screen_ptr->lineNumber == screen_ptr->interruptLine)
 					{
-						interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
-						flags->LCDC = 1;
+						LCDstatus->LYC_Flag = 1;
+
+						if((LCDstatus->LYC_Interrupt_enable))
+						{
+
+							interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
+							flags->LCDC = 1;
+						}
+					}
+					else
+					{
+						LCDstatus->LYC_Flag = 0;
 					}
 
 					//check if we are at a new frame
@@ -465,7 +483,7 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 				unsigned short windowTileMapLocation = LCDcontrol->Window_tile_map ? 0x9C00 : 0x9800;
 				unsigned char screenX = screen_ptr->rowNumber;
 				unsigned char screenY = screen_ptr->lineNumber;
-				unsigned char windowX = (*(RAM_ptr + RAM_LOCATION_GRAPHICS_SCX) & 0xF8) - 7;
+				unsigned char windowX = screen_ptr->windowX - 7;
 				unsigned char windowY = screen_ptr->windowY;
 				unsigned char windowLineNumber = screen_ptr->windowLineNumber;
 				unsigned char viewportX = screen_ptr->scrollX;
