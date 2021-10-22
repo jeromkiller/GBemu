@@ -21,10 +21,10 @@
 #define SPRITE_HEIGHT 8
 #define SPRITE_FULLHEIGHT 16
 
-#define SCREENMODE_HBLANK 0b00
-#define SCREENMODE_VBLANK 0b01
-#define SCREENMODE_OAM_SEARCH 0b10
-#define SCREENMODE_PLACING_PIX 0b11
+#define SCREENMODE_HBLANK 0
+#define SCREENMODE_VBLANK 1
+#define SCREENMODE_OAM_SEARCH 2
+#define SCREENMODE_PLACING_PIX 3
 
 #define USECONDS_PER_FRAME 16742
 
@@ -353,8 +353,8 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 						if(LCDstatus->LYC_Interrupt_enable)
 						{
 							//set the interrupt flag
-							interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
-							flags->LCDC = 1;
+						interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
+						flags->LCDC = 1;
 						}
 					}
 					else
@@ -420,8 +420,8 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 						if((LCDstatus->LYC_Interrupt_enable))
 						{
 
-							interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
-							flags->LCDC = 1;
+						interruptFlags* flags = (interruptFlags*)(RAM_ptr + RAM_LOCATION_IO_IF);
+						flags->LCDC = 1;
 						}
 					}
 					else
@@ -497,13 +497,13 @@ void perform_LCD_operation(screenData* screen_ptr, RAM* RAM_ptr, framebuffer* fb
 					if(LCDcontrol->Window_enable && (screenX >= windowX) && (screenY >= windowY))
 					{
 						//get the tile id for the window
-						unsigned char tileId = getTileId(RAM_ptr + bgTileMapLocation, screenX - windowX, windowLineNumber);
+						unsigned char tileId = getTileId(RAM_ptr + windowTileMapLocation, screenX - windowX, windowLineNumber);
 						if(!bgTileMapAdressingMode)
 						{
 							tileId += 128;
 						}
 
-						tile* currentTile = getTileFromId(RAM_ptr + windowTileMapLocation, tileId);
+						tile* currentTile = getTileFromId(RAM_ptr + bgTileDataLocation, tileId);
 						pixPalette = getPalette(currentTile, (screenX - windowX) % 8, (screenY - windowY) % 8);
 					}
 					else
